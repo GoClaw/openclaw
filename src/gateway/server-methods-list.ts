@@ -82,6 +82,10 @@ const BASE_METHODS = [
   "chat.history",
   "chat.abort",
   "chat.send",
+  // Memory RPC methods
+  "memory.status",
+  "memory.files",
+  "memory.read",
 ];
 
 export function listGatewayMethods(): string[] {
