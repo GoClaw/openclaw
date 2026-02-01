@@ -99,8 +99,10 @@ const WRITE_METHODS = new Set([
   "node.invoke",
   "chat.send",
   "chat.abort",
+  "chat.inject",
   "browser.request",
   "push.test",
+  "memory.write",
 ]);
 
 function authorizeGatewayMethod(method: string, client: GatewayRequestOptions["client"]) {
