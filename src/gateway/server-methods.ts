@@ -11,6 +11,7 @@ import { deviceHandlers } from "./server-methods/devices.js";
 import { execApprovalsHandlers } from "./server-methods/exec-approvals.js";
 import { healthHandlers } from "./server-methods/health.js";
 import { logsHandlers } from "./server-methods/logs.js";
+import { memoryHandlers } from "./server-methods/memory.js";
 import { modelsHandlers } from "./server-methods/models.js";
 import { nodeHandlers } from "./server-methods/nodes.js";
 import { pushHandlers } from "./server-methods/push.js";
@@ -80,6 +81,9 @@ const READ_METHODS = new Set([
   "chat.history",
   "config.get",
   "talk.config",
+  "memory.status",
+  "memory.files",
+  "memory.read",
 ]);
 const WRITE_METHODS = new Set([
   "send",
@@ -195,6 +199,7 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
   ...pushHandlers,
   ...sendHandlers,
   ...usageHandlers,
+  ...memoryHandlers,
   ...agentHandlers,
   ...agentsHandlers,
   ...browserHandlers,
