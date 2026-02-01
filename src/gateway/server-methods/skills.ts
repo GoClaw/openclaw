@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import path from "node:path";
+
 import type { OpenClawConfig } from "../../config/config.js";
 import type { GatewayRequestHandlers } from "./types.js";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../../agents/agent-scope.js";
@@ -6,11 +9,13 @@ import { buildWorkspaceSkillStatus } from "../../agents/skills-status.js";
 import { loadWorkspaceSkillEntries, type SkillEntry } from "../../agents/skills.js";
 import { loadConfig, writeConfigFile } from "../../config/config.js";
 import { getRemoteSkillEligibility } from "../../infra/skills-remote.js";
+import { CONFIG_DIR } from "../../utils.js";
 import {
   ErrorCodes,
   errorShape,
   formatValidationErrors,
   validateSkillsBinsParams,
+  validateSkillsCreateParams,
   validateSkillsInstallParams,
   validateSkillsStatusParams,
   validateSkillsUpdateParams,
@@ -194,5 +199,95 @@ export const skillsHandlers: GatewayRequestHandlers = {
     };
     await writeConfigFile(nextConfig);
     respond(true, { ok: true, skillKey: p.skillKey, config: current }, undefined);
+  },
+  "skills.create": ({ params, respond }) => {
+    if (!validateSkillsCreateParams(params)) {
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.INVALID_REQUEST,
+          `invalid skills.create params: ${formatValidationErrors(validateSkillsCreateParams.errors)}`,
+        ),
+      );
+      return;
+    }
+    const p = params as {
+      name: string;
+      files: Array<{ path: string; content: string }>;
+      overwrite?: boolean;
+    };
+
+    // Validate skill name (no path traversal, only safe chars)
+    if (/[/\\]|\.\./.test(p.name)) {
+      respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "invalid skill name"));
+      return;
+    }
+
+    // Ensure at least one file is SKILL.md
+    const hasSkillMd = p.files.some((f) => f.path === "SKILL.md");
+    if (!hasSkillMd) {
+      respond(
+        false,
+        undefined,
+        errorShape(ErrorCodes.INVALID_REQUEST, "files must include SKILL.md"),
+      );
+      return;
+    }
+
+    // Validate all file paths (no traversal, no absolute)
+    for (const f of p.files) {
+      if (f.path.startsWith("/") || f.path.includes("..") || f.path.includes("\\")) {
+        respond(
+          false,
+          undefined,
+          errorShape(ErrorCodes.INVALID_REQUEST, `unsafe file path: ${f.path}`),
+        );
+        return;
+      }
+    }
+
+    // Limit aggregate size to 1MB
+    const totalSize = p.files.reduce((sum, f) => sum + f.content.length, 0);
+    if (totalSize > 1_048_576) {
+      respond(
+        false,
+        undefined,
+        errorShape(ErrorCodes.INVALID_REQUEST, "total content exceeds 1MB limit"),
+      );
+      return;
+    }
+
+    const managedSkillsDir = path.join(CONFIG_DIR, "skills");
+    const targetDir = path.join(managedSkillsDir, p.name);
+
+    // Check if already exists
+    if (fs.existsSync(targetDir) && !p.overwrite) {
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.INVALID_REQUEST,
+          `skill "${p.name}" already exists; use overwrite to replace`,
+        ),
+      );
+      return;
+    }
+
+    try {
+      // Write files
+      let filesWritten = 0;
+      for (const f of p.files) {
+        const filePath = path.join(targetDir, f.path);
+        const fileDir = path.dirname(filePath);
+        fs.mkdirSync(fileDir, { recursive: true });
+        fs.writeFileSync(filePath, f.content, "utf-8");
+        filesWritten++;
+      }
+      respond(true, { ok: true, name: p.name, path: targetDir, filesWritten }, undefined);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "failed to write skill files";
+      respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, message));
+    }
   },
 };

@@ -82,3 +82,21 @@ export const SkillsUpdateParamsSchema = Type.Object(
   },
   { additionalProperties: false },
 );
+
+export const SkillsCreateParamsSchema = Type.Object(
+  {
+    name: NonEmptyString,
+    files: Type.Array(
+      Type.Object(
+        {
+          path: NonEmptyString,
+          content: Type.String(),
+        },
+        { additionalProperties: false },
+      ),
+      { minItems: 1 },
+    ),
+    overwrite: Type.Optional(Type.Boolean()),
+  },
+  { additionalProperties: false },
+);

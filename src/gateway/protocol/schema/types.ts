@@ -16,6 +16,7 @@ import type {
   ModelsListResultSchema,
   SkillsBinsParamsSchema,
   SkillsBinsResultSchema,
+  SkillsCreateParamsSchema,
   SkillsInstallParamsSchema,
   SkillsStatusParamsSchema,
   SkillsUpdateParamsSchema,
@@ -181,6 +182,7 @@ export type SkillsBinsParams = Static<typeof SkillsBinsParamsSchema>;
 export type SkillsBinsResult = Static<typeof SkillsBinsResultSchema>;
 export type SkillsInstallParams = Static<typeof SkillsInstallParamsSchema>;
 export type SkillsUpdateParams = Static<typeof SkillsUpdateParamsSchema>;
+export type SkillsCreateParams = Static<typeof SkillsCreateParamsSchema>;
 export type CronJob = Static<typeof CronJobSchema>;
 export type CronListParams = Static<typeof CronListParamsSchema>;
 export type CronStatusParams = Static<typeof CronStatusParamsSchema>;
