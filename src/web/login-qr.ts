@@ -235,12 +235,33 @@ export async function startWebLoginWithPairingCode(opts: {
 
   await resetActiveLogin(account.accountId);
 
+  // Wait for the socket to receive the pair-device stanza from WhatsApp
+  // (signalled by the QR event) before requesting a pairing code.
+  let resolveReady: (() => void) | null = null;
+  let rejectReady: ((err: Error) => void) | null = null;
+  const readyPromise = new Promise<void>((resolve, reject) => {
+    resolveReady = resolve;
+    rejectReady = reject;
+  });
+
+  const readyTimer = setTimeout(
+    () => rejectReady?.(new Error("Timed out waiting for WhatsApp socket readiness")),
+    Math.max(opts.timeoutMs ?? 30_000, 5000),
+  );
+
   let sock: WaSocket;
   try {
     sock = await createWaSocket(false, Boolean(opts.verbose), {
       authDir: account.authDir,
+      onQr: () => {
+        // QR event means the Noise handshake is done and the server sent
+        // the pair-device stanza — the socket is ready for requestPairingCode.
+        clearTimeout(readyTimer);
+        resolveReady?.();
+      },
     });
   } catch (err) {
+    clearTimeout(readyTimer);
     await resetActiveLogin(account.accountId);
     return {
       message: `Failed to start WhatsApp login: ${String(err)}`,
@@ -262,14 +283,23 @@ export async function startWebLoginWithPairingCode(opts: {
   activeLogins.set(account.accountId, login);
   attachLoginWaiter(account.accountId, login);
 
-  // Wait briefly for the socket to be ready before requesting pairing code
-  await new Promise((resolve) => setTimeout(resolve, 2000));
+  // Wait for the socket to be fully ready (pair-device received)
+  try {
+    await readyPromise;
+  } catch (err) {
+    clearTimeout(readyTimer);
+    await resetActiveLogin(account.accountId);
+    return {
+      message: `Failed waiting for socket readiness: ${String(err)}`,
+    };
+  }
 
   let pairingCode: string;
   try {
     const digits = opts.phoneNumber.replace(/\D/g, "");
+    runtime.log(info(`Requesting WhatsApp pairing code for number: ${digits}`));
     pairingCode = await sock.requestPairingCode(digits);
-    runtime.log(info(`WhatsApp pairing code generated for +${digits}.`));
+    runtime.log(info(`WhatsApp pairing code generated for +${digits}: ${pairingCode}`));
   } catch (err) {
     await resetActiveLogin(account.accountId);
     return {
