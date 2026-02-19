@@ -25,13 +25,13 @@ RUN pnpm install --frozen-lockfile
 
 # Optionally install Chromium and Xvfb for browser automation.
 # Build with: docker build --build-arg OPENCLAW_INSTALL_BROWSER=1 ...
-# Adds ~300MB but eliminates the 60-90s Playwright install on every container start.
-# Must run after pnpm install so playwright-core is available in node_modules.
+# Uses system chromium package so the binary is at /usr/bin/chromium
+# (auto-detected by OpenClaw's browser resolver).
 ARG OPENCLAW_INSTALL_BROWSER=""
 RUN if [ -n "$OPENCLAW_INSTALL_BROWSER" ]; then \
       apt-get update && \
-      DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends xvfb && \
-      node /app/node_modules/playwright-core/cli.js install --with-deps chromium && \
+      DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        xvfb chromium && \
       apt-get clean && \
       rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*; \
     fi
@@ -51,6 +51,11 @@ RUN chown -R node:node /app
 # The node:22-bookworm image includes a 'node' user (uid 1000)
 # This reduces the attack surface by preventing container escape via root privileges
 USER node
+
+# Entrypoint starts Xvfb (virtual display) if browser support is installed.
+# Works transparently — if Xvfb is not present, the entrypoint is a no-op.
+RUN chmod +x /app/scripts/container-entrypoint.sh
+ENTRYPOINT ["/app/scripts/container-entrypoint.sh"]
 
 # Start gateway server with default config.
 # Binds to loopback (127.0.0.1) by default for security.
