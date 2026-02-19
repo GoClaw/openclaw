@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { DisconnectReason } from "@whiskeysockets/baileys";
+import { Browsers, DisconnectReason } from "@whiskeysockets/baileys";
 import { loadConfig } from "../config/config.js";
 import { danger, info, success } from "../globals.js";
 import { logInfo } from "../logger.js";
@@ -276,6 +276,10 @@ export async function startWebLoginWithPairingCode(opts: {
   try {
     sock = await createWaSocket(false, Boolean(opts.verbose), {
       authDir: account.authDir,
+      // WhatsApp rejects pairing codes from unrecognized platforms.
+      // The default browser ["openclaw", "cli", ...] fails validation;
+      // we must use a recognized platform for the pairing code flow.
+      browser: Browsers.ubuntu("Chrome"),
       onQr: () => {
         // QR event = pair-device stanza arrived. Call requestPairingCode
         // RIGHT HERE, inside the event handler, before Baileys processes
