@@ -46,6 +46,34 @@ function exists(filePath: string) {
   }
 }
 
+/**
+ * Remove stale Chrome singleton lock files from a user-data directory.
+ *
+ * Chrome creates SingletonLock, SingletonCookie and SingletonSocket as symlinks
+ * when it starts. If the browser crashes or the container is recreated, these
+ * files persist on bind-mounted volumes and reference the old container's
+ * hostname, causing Chrome to refuse to start with "profile appears to be in
+ * use by another Chromium process on another computer".
+ *
+ * This is safe to call before launching a new instance because
+ * launchOpenClawChrome() is only invoked when no Chrome is reachable on the
+ * target port.
+ */
+function removeChromeSingletonFiles(userDataDir: string): void {
+  for (const name of ["SingletonLock", "SingletonCookie", "SingletonSocket"]) {
+    const filePath = path.join(userDataDir, name);
+    try {
+      // Use lstat to detect symlinks (fs.existsSync follows symlinks and
+      // returns false for dangling ones).
+      fs.lstatSync(filePath);
+      fs.unlinkSync(filePath);
+      log.info(`removed stale ${name} from ${userDataDir}`);
+    } catch {
+      // File doesn't exist or already removed — nothing to do.
+    }
+  }
+}
+
 export type RunningChrome = {
   pid: number;
   exe: BrowserExecutable;
@@ -283,6 +311,10 @@ export async function launchOpenClawChrome(
   } catch (err) {
     log.warn(`openclaw browser clean-exit prefs failed: ${String(err)}`);
   }
+
+  // Remove stale singleton lock files that may prevent Chrome from starting
+  // (e.g. after a container recreation where the hostname changes).
+  removeChromeSingletonFiles(userDataDir);
 
   const proc = spawnOnce();
   // Wait for CDP to come up.
