@@ -235,6 +235,16 @@ export async function startWebLoginWithPairingCode(opts: {
 
   await resetActiveLogin(account.accountId);
 
+  // Clear stale auth state when force is set, so Baileys starts fresh
+  // and goes through the pair-device flow instead of trying to resume.
+  if (opts.force && hasWeb) {
+    await logoutWeb({
+      authDir: account.authDir,
+      isLegacyAuthDir: account.isLegacyAuthDir,
+      runtime,
+    });
+  }
+
   // Wait for the socket to receive the pair-device stanza from WhatsApp
   // (signalled by the QR event) before requesting a pairing code.
   let resolveReady: (() => void) | null = null;
