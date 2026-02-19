@@ -96,7 +96,10 @@ function truncateChatHistoryText(text: string): { text: string; truncated: boole
   };
 }
 
-function sanitizeChatHistoryContentBlock(block: unknown): { block: unknown; changed: boolean } {
+function sanitizeChatHistoryContentBlock(
+  block: unknown,
+  keepMedia = false,
+): { block: unknown; changed: boolean } {
   if (!block || typeof block !== "object") {
     return { block, changed: false };
   }
@@ -127,7 +130,7 @@ function sanitizeChatHistoryContentBlock(block: unknown): { block: unknown; chan
     changed = true;
   }
   const type = typeof entry.type === "string" ? entry.type : "";
-  if (type === "image" && typeof entry.data === "string") {
+  if (type === "image" && typeof entry.data === "string" && !keepMedia) {
     const bytes = Buffer.byteLength(entry.data, "utf8");
     delete entry.data;
     entry.omitted = true;
@@ -137,7 +140,10 @@ function sanitizeChatHistoryContentBlock(block: unknown): { block: unknown; chan
   return { block: changed ? entry : block, changed };
 }
 
-function sanitizeChatHistoryMessage(message: unknown): { message: unknown; changed: boolean } {
+function sanitizeChatHistoryMessage(
+  message: unknown,
+  keepMedia = false,
+): { message: unknown; changed: boolean } {
   if (!message || typeof message !== "object") {
     return { message, changed: false };
   }
@@ -162,7 +168,7 @@ function sanitizeChatHistoryMessage(message: unknown): { message: unknown; chang
     entry.content = res.text;
     changed ||= res.truncated;
   } else if (Array.isArray(entry.content)) {
-    const updated = entry.content.map((block) => sanitizeChatHistoryContentBlock(block));
+    const updated = entry.content.map((block) => sanitizeChatHistoryContentBlock(block, keepMedia));
     if (updated.some((item) => item.changed)) {
       entry.content = updated.map((item) => item.block);
       changed = true;
@@ -178,13 +184,13 @@ function sanitizeChatHistoryMessage(message: unknown): { message: unknown; chang
   return { message: changed ? entry : message, changed };
 }
 
-function sanitizeChatHistoryMessages(messages: unknown[]): unknown[] {
+function sanitizeChatHistoryMessages(messages: unknown[], keepMedia = false): unknown[] {
   if (messages.length === 0) {
     return messages;
   }
   let changed = false;
   const next = messages.map((message) => {
-    const res = sanitizeChatHistoryMessage(message);
+    const res = sanitizeChatHistoryMessage(message, keepMedia);
     changed ||= res.changed;
     return res.message;
   });
@@ -574,9 +580,10 @@ export const chatHandlers: GatewayRequestHandlers = {
       );
       return;
     }
-    const { sessionKey, limit } = params as {
+    const { sessionKey, limit, includeMedia } = params as {
       sessionKey: string;
       limit?: number;
+      includeMedia?: boolean;
     };
     const { cfg, storePath, entry } = loadSessionEntry(sessionKey);
     const sessionId = entry?.sessionId;
@@ -588,7 +595,7 @@ export const chatHandlers: GatewayRequestHandlers = {
     const max = Math.min(hardMax, requested);
     const sliced = rawMessages.length > max ? rawMessages.slice(-max) : rawMessages;
     const sanitized = stripEnvelopeFromMessages(sliced);
-    const normalized = sanitizeChatHistoryMessages(sanitized);
+    const normalized = sanitizeChatHistoryMessages(sanitized, includeMedia === true);
     const maxHistoryBytes = getMaxChatHistoryMessagesBytes();
     const perMessageHardCap = Math.min(CHAT_HISTORY_MAX_SINGLE_MESSAGE_BYTES, maxHistoryBytes);
     const replaced = replaceOversizedChatHistoryMessages({
