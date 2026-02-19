@@ -245,38 +245,66 @@ export async function startWebLoginWithPairingCode(opts: {
     });
   }
 
-  // Wait for the socket to receive the pair-device stanza from WhatsApp
-  // (signalled by the QR event) before requesting a pairing code.
-  let resolveReady: (() => void) | null = null;
-  let rejectReady: ((err: Error) => void) | null = null;
-  const readyPromise = new Promise<void>((resolve, reject) => {
-    resolveReady = resolve;
-    rejectReady = reject;
+  const digits = opts.phoneNumber.replace(/\D/g, "");
+
+  // requestPairingCode MUST be called inside the connection.update handler
+  // that receives the QR event — i.e. in the same synchronous execution
+  // context as the pair-device stanza processing. If we defer to a later
+  // microtask (e.g. by resolving a promise and awaiting it), Baileys has
+  // already committed the socket to "QR scan" mode and the server rejects
+  // the pairing code registration. This is why QR works but pairing code
+  // didn't — they are mutually exclusive flows.
+  let resolvePairing: ((code: string) => void) | null = null;
+  let rejectPairing: ((err: Error) => void) | null = null;
+  const pairingPromise = new Promise<string>((resolve, reject) => {
+    resolvePairing = resolve;
+    rejectPairing = reject;
   });
 
-  const readyTimer = setTimeout(
-    () => rejectReady?.(new Error("Timed out waiting for WhatsApp socket readiness")),
+  const pairingTimer = setTimeout(
+    () => rejectPairing?.(new Error("Timed out waiting for WhatsApp pairing code")),
     Math.max(opts.timeoutMs ?? 30_000, 5000),
   );
+
+  // sockRef is set right after createWaSocket returns; since onQr fires
+  // asynchronously (after WebSocket connect + Noise handshake), sockRef
+  // will always be populated by the time the callback runs.
+  let sockRef: WaSocket | null = null;
+  let pairingRequested = false;
 
   let sock: WaSocket;
   try {
     sock = await createWaSocket(false, Boolean(opts.verbose), {
       authDir: account.authDir,
       onQr: () => {
-        // QR event means the Noise handshake is done and the server sent
-        // the pair-device stanza — the socket is ready for requestPairingCode.
-        clearTimeout(readyTimer);
-        resolveReady?.();
+        // QR event = pair-device stanza arrived. Call requestPairingCode
+        // RIGHT HERE, inside the event handler, before Baileys processes
+        // anything else. Do NOT defer to a promise chain.
+        if (pairingRequested || !sockRef) {
+          return;
+        }
+        pairingRequested = true;
+        clearTimeout(pairingTimer);
+        runtime.log(info(`Requesting WhatsApp pairing code for +${digits} (inside QR handler)…`));
+        sockRef
+          .requestPairingCode(digits)
+          .then((code) => {
+            runtime.log(info(`WhatsApp pairing code generated: ${code}`));
+            resolvePairing?.(code);
+          })
+          .catch((err) => {
+            rejectPairing?.(err instanceof Error ? err : new Error(String(err)));
+          });
       },
     });
   } catch (err) {
-    clearTimeout(readyTimer);
+    clearTimeout(pairingTimer);
     await resetActiveLogin(account.accountId);
     return {
       message: `Failed to start WhatsApp login: ${String(err)}`,
     };
   }
+  sockRef = sock;
 
   const login: ActiveLogin = {
     accountId: account.accountId,
@@ -293,24 +321,11 @@ export async function startWebLoginWithPairingCode(opts: {
   activeLogins.set(account.accountId, login);
   attachLoginWaiter(account.accountId, login);
 
-  // Wait for the socket to be fully ready (pair-device received)
-  try {
-    await readyPromise;
-  } catch (err) {
-    clearTimeout(readyTimer);
-    await resetActiveLogin(account.accountId);
-    return {
-      message: `Failed waiting for socket readiness: ${String(err)}`,
-    };
-  }
-
   let pairingCode: string;
   try {
-    const digits = opts.phoneNumber.replace(/\D/g, "");
-    runtime.log(info(`Requesting WhatsApp pairing code for number: ${digits}`));
-    pairingCode = await sock.requestPairingCode(digits);
-    runtime.log(info(`WhatsApp pairing code generated for +${digits}: ${pairingCode}`));
+    pairingCode = await pairingPromise;
   } catch (err) {
+    clearTimeout(pairingTimer);
     await resetActiveLogin(account.accountId);
     return {
       message: `Failed to request pairing code: ${String(err)}`,
