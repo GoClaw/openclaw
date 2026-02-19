@@ -47,6 +47,9 @@ ENV NODE_ENV=production
 # Allow non-root user to write temp files during runtime/tests.
 RUN chown -R node:node /app
 
+# Create /tmp/.X11-unix for Xvfb (must exist before switching to non-root)
+RUN mkdir -p /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix
+
 # Security hardening: Run as non-root user
 # The node:22-bookworm image includes a 'node' user (uid 1000)
 # This reduces the attack surface by preventing container escape via root privileges
