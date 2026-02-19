@@ -144,6 +144,17 @@ export const WebLoginStartParamsSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export const WebLoginPairingCodeStartParamsSchema = Type.Object(
+  {
+    phoneNumber: Type.String({ minLength: 7, maxLength: 20 }),
+    force: Type.Optional(Type.Boolean()),
+    timeoutMs: Type.Optional(Type.Integer({ minimum: 0 })),
+    verbose: Type.Optional(Type.Boolean()),
+    accountId: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
 export const WebLoginWaitParamsSchema = Type.Object(
   {
     timeoutMs: Type.Optional(Type.Integer({ minimum: 0 })),

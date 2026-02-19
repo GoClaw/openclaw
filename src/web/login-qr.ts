@@ -213,6 +213,76 @@ export async function startWebLoginWithQr(
   };
 }
 
+export async function startWebLoginWithPairingCode(opts: {
+  phoneNumber: string;
+  verbose?: boolean;
+  timeoutMs?: number;
+  force?: boolean;
+  accountId?: string;
+  runtime?: RuntimeEnv;
+}): Promise<{ pairingCode?: string; message: string }> {
+  const runtime = opts.runtime ?? defaultRuntime;
+  const cfg = loadConfig();
+  const account = resolveWhatsAppAccount({ cfg, accountId: opts.accountId });
+  const hasWeb = await webAuthExists(account.authDir);
+  const selfId = readWebSelfId(account.authDir);
+  if (hasWeb && !opts.force) {
+    const who = selfId.e164 ?? selfId.jid ?? "unknown";
+    return {
+      message: `WhatsApp is already linked (${who}). Use force to relink.`,
+    };
+  }
+
+  await resetActiveLogin(account.accountId);
+
+  let sock: WaSocket;
+  try {
+    sock = await createWaSocket(false, Boolean(opts.verbose), {
+      authDir: account.authDir,
+    });
+  } catch (err) {
+    await resetActiveLogin(account.accountId);
+    return {
+      message: `Failed to start WhatsApp login: ${String(err)}`,
+    };
+  }
+
+  const login: ActiveLogin = {
+    accountId: account.accountId,
+    authDir: account.authDir,
+    isLegacyAuthDir: account.isLegacyAuthDir,
+    id: randomUUID(),
+    sock,
+    startedAt: Date.now(),
+    connected: false,
+    waitPromise: Promise.resolve(),
+    restartAttempted: false,
+    verbose: Boolean(opts.verbose),
+  };
+  activeLogins.set(account.accountId, login);
+  attachLoginWaiter(account.accountId, login);
+
+  // Wait briefly for the socket to be ready before requesting pairing code
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+
+  let pairingCode: string;
+  try {
+    const digits = opts.phoneNumber.replace(/\D/g, "");
+    pairingCode = await sock.requestPairingCode(digits);
+    runtime.log(info(`WhatsApp pairing code generated for +${digits}.`));
+  } catch (err) {
+    await resetActiveLogin(account.accountId);
+    return {
+      message: `Failed to request pairing code: ${String(err)}`,
+    };
+  }
+
+  return {
+    pairingCode,
+    message: "Enter this code in WhatsApp → Linked Devices → Link with phone number.",
+  };
+}
+
 export async function waitForWebLogin(
   opts: { timeoutMs?: number; runtime?: RuntimeEnv; accountId?: string } = {},
 ): Promise<{ connected: boolean; message: string }> {

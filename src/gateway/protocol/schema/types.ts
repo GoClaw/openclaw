@@ -43,6 +43,7 @@ import type {
   TalkModeParamsSchema,
   WebLoginStartParamsSchema,
   WebLoginWaitParamsSchema,
+  WebLoginPairingCodeStartParamsSchema,
 } from "./channels.js";
 import type {
   ConfigApplyParamsSchema,
@@ -194,6 +195,7 @@ export type ChannelsStatusResult = Static<typeof ChannelsStatusResultSchema>;
 export type ChannelsLogoutParams = Static<typeof ChannelsLogoutParamsSchema>;
 export type WebLoginStartParams = Static<typeof WebLoginStartParamsSchema>;
 export type WebLoginWaitParams = Static<typeof WebLoginWaitParamsSchema>;
+export type WebLoginPairingCodeStartParams = Static<typeof WebLoginPairingCodeStartParamsSchema>;
 export type AgentSummary = Static<typeof AgentSummarySchema>;
 export type AgentsFileEntry = Static<typeof AgentsFileEntrySchema>;
 export type AgentsCreateParams = Static<typeof AgentsCreateParamsSchema>;
