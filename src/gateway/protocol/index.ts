@@ -52,6 +52,18 @@ import {
   ChannelsStatusParamsSchema,
   type ChannelsStatusResult,
   ChannelsStatusResultSchema,
+  type ChannelsPairingListParams,
+  ChannelsPairingListParamsSchema,
+  type ChannelsPairingApproveParams,
+  ChannelsPairingApproveParamsSchema,
+  type ChannelsPairingRejectParams,
+  ChannelsPairingRejectParamsSchema,
+  type ChannelsAllowFromListParams,
+  ChannelsAllowFromListParamsSchema,
+  type ChannelsAllowFromAddParams,
+  ChannelsAllowFromAddParamsSchema,
+  type ChannelsAllowFromRemoveParams,
+  ChannelsAllowFromRemoveParamsSchema,
   type ChatAbortParams,
   ChatAbortParamsSchema,
   type ChatEvent,
@@ -321,6 +333,24 @@ export const validateChannelsStatusParams = ajv.compile<ChannelsStatusParams>(
 export const validateChannelsLogoutParams = ajv.compile<ChannelsLogoutParams>(
   ChannelsLogoutParamsSchema,
 );
+export const validateChannelsPairingListParams = ajv.compile<ChannelsPairingListParams>(
+  ChannelsPairingListParamsSchema,
+);
+export const validateChannelsPairingApproveParams = ajv.compile<ChannelsPairingApproveParams>(
+  ChannelsPairingApproveParamsSchema,
+);
+export const validateChannelsPairingRejectParams = ajv.compile<ChannelsPairingRejectParams>(
+  ChannelsPairingRejectParamsSchema,
+);
+export const validateChannelsAllowFromListParams = ajv.compile<ChannelsAllowFromListParams>(
+  ChannelsAllowFromListParamsSchema,
+);
+export const validateChannelsAllowFromAddParams = ajv.compile<ChannelsAllowFromAddParams>(
+  ChannelsAllowFromAddParamsSchema,
+);
+export const validateChannelsAllowFromRemoveParams = ajv.compile<ChannelsAllowFromRemoveParams>(
+  ChannelsAllowFromRemoveParamsSchema,
+);
 export const validateModelsListParams = ajv.compile<ModelsListParams>(ModelsListParamsSchema);
 export const validateSkillsStatusParams = ajv.compile<SkillsStatusParams>(SkillsStatusParamsSchema);
 export const validateSkillsBinsParams = ajv.compile<SkillsBinsParams>(SkillsBinsParamsSchema);
@@ -475,6 +505,12 @@ export {
   ChannelsStatusParamsSchema,
   ChannelsStatusResultSchema,
   ChannelsLogoutParamsSchema,
+  ChannelsPairingListParamsSchema,
+  ChannelsPairingApproveParamsSchema,
+  ChannelsPairingRejectParamsSchema,
+  ChannelsAllowFromListParamsSchema,
+  ChannelsAllowFromAddParamsSchema,
+  ChannelsAllowFromRemoveParamsSchema,
   WebLoginStartParamsSchema,
   WebLoginWaitParamsSchema,
   AgentSummarySchema,
@@ -565,6 +601,12 @@ export type {
   ChannelsStatusParams,
   ChannelsStatusResult,
   ChannelsLogoutParams,
+  ChannelsPairingListParams,
+  ChannelsPairingApproveParams,
+  ChannelsPairingRejectParams,
+  ChannelsAllowFromListParams,
+  ChannelsAllowFromAddParams,
+  ChannelsAllowFromRemoveParams,
   WebLoginStartParams,
   WebLoginWaitParams,
   AgentSummary,

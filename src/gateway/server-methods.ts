@@ -2,6 +2,7 @@ import { ErrorCodes, errorShape } from "./protocol/index.js";
 import { agentHandlers } from "./server-methods/agent.js";
 import { agentsHandlers } from "./server-methods/agents.js";
 import { browserHandlers } from "./server-methods/browser.js";
+import { channelPairingHandlers } from "./server-methods/channel-pairing.js";
 import { channelsHandlers } from "./server-methods/channels.js";
 import { chatHandlers } from "./server-methods/chat.js";
 import { configHandlers } from "./server-methods/config.js";
@@ -53,6 +54,12 @@ const PAIRING_METHODS = new Set([
   "device.token.rotate",
   "device.token.revoke",
   "node.rename",
+  "channels.pairing.list",
+  "channels.pairing.approve",
+  "channels.pairing.reject",
+  "channels.allowFrom.list",
+  "channels.allowFrom.add",
+  "channels.allowFrom.remove",
 ]);
 const ADMIN_METHOD_PREFIXES = ["exec.approvals."];
 const READ_METHODS = new Set([
@@ -205,6 +212,7 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
   ...agentHandlers,
   ...agentsHandlers,
   ...browserHandlers,
+  ...channelPairingHandlers,
 };
 
 export async function handleGatewayRequest(

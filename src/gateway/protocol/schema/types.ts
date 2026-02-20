@@ -44,6 +44,12 @@ import type {
   WebLoginStartParamsSchema,
   WebLoginWaitParamsSchema,
   WebLoginPairingCodeStartParamsSchema,
+  ChannelsPairingListParamsSchema,
+  ChannelsPairingApproveParamsSchema,
+  ChannelsPairingRejectParamsSchema,
+  ChannelsAllowFromListParamsSchema,
+  ChannelsAllowFromAddParamsSchema,
+  ChannelsAllowFromRemoveParamsSchema,
 } from "./channels.js";
 import type {
   ConfigApplyParamsSchema,
@@ -193,6 +199,12 @@ export type TalkConfigResult = Static<typeof TalkConfigResultSchema>;
 export type ChannelsStatusParams = Static<typeof ChannelsStatusParamsSchema>;
 export type ChannelsStatusResult = Static<typeof ChannelsStatusResultSchema>;
 export type ChannelsLogoutParams = Static<typeof ChannelsLogoutParamsSchema>;
+export type ChannelsPairingListParams = Static<typeof ChannelsPairingListParamsSchema>;
+export type ChannelsPairingApproveParams = Static<typeof ChannelsPairingApproveParamsSchema>;
+export type ChannelsPairingRejectParams = Static<typeof ChannelsPairingRejectParamsSchema>;
+export type ChannelsAllowFromListParams = Static<typeof ChannelsAllowFromListParamsSchema>;
+export type ChannelsAllowFromAddParams = Static<typeof ChannelsAllowFromAddParamsSchema>;
+export type ChannelsAllowFromRemoveParams = Static<typeof ChannelsAllowFromRemoveParamsSchema>;
 export type WebLoginStartParams = Static<typeof WebLoginStartParamsSchema>;
 export type WebLoginWaitParams = Static<typeof WebLoginWaitParamsSchema>;
 export type WebLoginPairingCodeStartParams = Static<typeof WebLoginPairingCodeStartParamsSchema>;

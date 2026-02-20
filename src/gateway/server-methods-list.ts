@@ -95,6 +95,13 @@ const BASE_METHODS = [
   "memory.status",
   "memory.files",
   "memory.read",
+  // Channel pairing management
+  "channels.pairing.list",
+  "channels.pairing.approve",
+  "channels.pairing.reject",
+  "channels.allowFrom.list",
+  "channels.allowFrom.add",
+  "channels.allowFrom.remove",
 ];
 
 export function listGatewayMethods(): string[] {

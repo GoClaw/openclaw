@@ -162,3 +162,58 @@ export const WebLoginWaitParamsSchema = Type.Object(
   },
   { additionalProperties: false },
 );
+
+// ─── Channel pairing management schemas ────────────────────────────
+
+export const ChannelsPairingListParamsSchema = Type.Object(
+  {
+    channel: NonEmptyString,
+    accountId: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
+export const ChannelsPairingApproveParamsSchema = Type.Object(
+  {
+    channel: NonEmptyString,
+    code: NonEmptyString,
+    accountId: Type.Optional(Type.String()),
+    notify: Type.Optional(Type.Boolean()),
+  },
+  { additionalProperties: false },
+);
+
+export const ChannelsPairingRejectParamsSchema = Type.Object(
+  {
+    channel: NonEmptyString,
+    code: NonEmptyString,
+    accountId: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
+export const ChannelsAllowFromListParamsSchema = Type.Object(
+  {
+    channel: NonEmptyString,
+    accountId: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
+export const ChannelsAllowFromAddParamsSchema = Type.Object(
+  {
+    channel: NonEmptyString,
+    entry: NonEmptyString,
+    accountId: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
+export const ChannelsAllowFromRemoveParamsSchema = Type.Object(
+  {
+    channel: NonEmptyString,
+    entry: NonEmptyString,
+    accountId: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false },
+);
