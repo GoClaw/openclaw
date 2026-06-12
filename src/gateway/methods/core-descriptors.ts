@@ -208,6 +208,8 @@ const CORE_GATEWAY_METHOD_SPECS = [
   ["skills.upload.chunk", "skills", "operator.admin", "<=2026.7"],
   ["skills.upload.commit", "skills", "operator.admin", "<=2026.7"],
   ["skills.install", "skills", "operator.admin", "<=2026.7"],
+  // GoClaw fork: dashboard-driven managed skill creation.
+  ["skills.create", "skills", "operator.admin", "2026.9", { controlPlaneWrite: true }],
   ["skills.update", "skills", "operator.admin", "<=2026.7"],
   ["skills.curator.status", "skills", "operator.read", "<=2026.7"],
   ["skills.curator.pin", "skills", "operator.admin", "<=2026.7"],
