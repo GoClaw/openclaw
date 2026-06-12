@@ -16,7 +16,20 @@ import type { GatewayRequestHandlers } from "./types.js";
 
 function resolveChannel(params: Record<string, unknown>) {
   const raw = params.channel;
-  return typeof raw === "string" ? normalizeChannelId(raw) : null;
+  if (typeof raw !== "string") {
+    return null;
+  }
+  const normalized = normalizeChannelId(raw);
+  if (normalized) {
+    return normalized;
+  }
+  // The plugin registry only knows channels that are configured/loaded, but
+  // the GoClaw dashboard manages pairing stores before a channel is first
+  // configured (e.g. listing pairing requests on a fresh deployment). Fall
+  // back to the sanitized raw id — the pairing store only uses it as a file
+  // path segment.
+  const fallback = raw.trim().toLowerCase();
+  return /^[a-z0-9][a-z0-9-]{0,31}$/.test(fallback) ? (fallback as never) : null;
 }
 
 export const channelPairingHandlers: GatewayRequestHandlers = {
