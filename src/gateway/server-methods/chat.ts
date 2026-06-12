@@ -2596,11 +2596,12 @@ async function handleChatHistoryRequest({
     );
     return;
   }
-  const { sessionKey, limit, maxChars } = params as {
+  const { sessionKey, limit, maxChars, includeMedia } = params as {
     sessionKey: string;
     agentId?: string;
     limit?: number;
     maxChars?: number;
+    includeMedia?: boolean;
   };
   const agentIdOverride = normalizeOptionalText((params as { agentId?: string }).agentId);
   const requestedAgentId = resolveRequestedChatAgentId({
@@ -2681,6 +2682,8 @@ async function handleChatHistoryRequest({
     projectRecentChatDisplayMessages(recencyFilteredMessages, {
       maxChars: effectiveMaxChars,
       maxMessages: max,
+      // GoClaw fork: keep base64 image data when the dashboard asks for it.
+      keepMedia: includeMedia === true,
     }),
   );
   const perMessageHardCap = Math.min(CHAT_HISTORY_MAX_SINGLE_MESSAGE_BYTES, maxHistoryBytes);

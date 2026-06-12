@@ -71,7 +71,7 @@ export function isToolHistoryBlockType(type: unknown): boolean {
 
 function sanitizeChatHistoryContentBlock(
   block: unknown,
-  opts?: { preserveExactToolPayload?: boolean; maxChars?: number },
+  opts?: { preserveExactToolPayload?: boolean; maxChars?: number; keepMedia?: boolean },
 ): { block: unknown; changed: boolean } {
   if (!block || typeof block !== "object") {
     return { block, changed: false };
@@ -127,7 +127,9 @@ function sanitizeChatHistoryContentBlock(
     changed = true;
   }
   const type = typeof entry.type === "string" ? entry.type : "";
-  if (type === "image" && typeof entry.data === "string") {
+  // GoClaw fork: keepMedia preserves base64 image data so the dashboard can
+  // render screenshots inline (chat.history includeMedia param).
+  if (type === "image" && typeof entry.data === "string" && opts?.keepMedia !== true) {
     const bytes = Buffer.byteLength(entry.data, "utf8");
     delete entry.data;
     entry.omitted = true;
@@ -272,6 +274,7 @@ function sanitizeUsage(raw: unknown): Record<string, number> | undefined {
 function sanitizeChatHistoryMessage(
   message: unknown,
   maxChars: number = DEFAULT_CHAT_HISTORY_TEXT_MAX_CHARS,
+  keepMedia = false,
 ): { message: unknown; changed: boolean } {
   if (!message || typeof message !== "object") {
     return { message, changed: false };
@@ -336,7 +339,7 @@ function sanitizeChatHistoryMessage(
     }
   } else if (Array.isArray(entry.content)) {
     const updated = entry.content.map((block) =>
-      sanitizeChatHistoryContentBlock(block, { preserveExactToolPayload, maxChars }),
+      sanitizeChatHistoryContentBlock(block, { preserveExactToolPayload, maxChars, keepMedia }),
     );
     if (updated.some((item) => item.changed)) {
       entry.content = updated.map((item) => item.block);
@@ -856,6 +859,7 @@ function shouldDropAssistantHistoryMessage(message: unknown): boolean {
 export function sanitizeChatHistoryMessages(
   messages: unknown[],
   maxChars: number = DEFAULT_CHAT_HISTORY_TEXT_MAX_CHARS,
+  keepMedia = false,
 ): unknown[] {
   if (messages.length === 0) {
     return messages;
@@ -867,7 +871,7 @@ export function sanitizeChatHistoryMessages(
       changed = true;
       continue;
     }
-    const res = sanitizeChatHistoryMessage(message, maxChars);
+    const res = sanitizeChatHistoryMessage(message, maxChars, keepMedia);
     changed ||= res.changed;
     if (shouldDropAssistantHistoryMessage(res.message)) {
       changed = true;
@@ -1295,20 +1299,24 @@ function projectSessionsSendInterSessionMessages(
 
 export function projectChatDisplayMessages(
   messages: unknown[],
-  options?: { maxChars?: number; stripEnvelope?: boolean },
+  options?: { maxChars?: number; stripEnvelope?: boolean; keepMedia?: boolean },
 ): Array<Record<string, unknown>> {
+  const keepMedia = options?.keepMedia === true;
   const source = options?.stripEnvelope === false ? messages : stripEnvelopeFromMessages(messages);
   const mirrored = mirrorMessageToolVisibleReplies(source);
   const projectedForwarded = mergeTtsSupplementMessages(
     filterVisibleProjectedHistoryMessages(
       projectSessionsSendInterSessionMessages(
-        toProjectedMessages(sanitizeChatHistoryMessages(mirrored, Number.MAX_SAFE_INTEGER)),
+        toProjectedMessages(
+          sanitizeChatHistoryMessages(mirrored, Number.MAX_SAFE_INTEGER, keepMedia),
+        ),
       ),
     ),
   );
   return sanitizeChatHistoryMessages(
     projectedForwarded,
     options?.maxChars ?? DEFAULT_CHAT_HISTORY_TEXT_MAX_CHARS,
+    keepMedia,
   ) as Array<Record<string, unknown>>;
 }
 
@@ -1326,7 +1334,12 @@ function limitChatDisplayMessages<T>(messages: T[], maxMessages?: number): T[] {
 
 export function projectRecentChatDisplayMessages(
   messages: unknown[],
-  options?: { maxChars?: number; maxMessages?: number; stripEnvelope?: boolean },
+  options?: {
+    maxChars?: number;
+    maxMessages?: number;
+    stripEnvelope?: boolean;
+    keepMedia?: boolean;
+  },
 ): Array<Record<string, unknown>> {
   return limitChatDisplayMessages(
     projectChatDisplayMessages(messages, options),
