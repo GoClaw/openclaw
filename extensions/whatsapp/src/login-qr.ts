@@ -21,6 +21,7 @@ import {
   readWebSelfId,
   WHATSAPP_AUTH_UNSTABLE_CODE,
 } from "./session.js";
+import { Browsers } from "./session.runtime.js";
 import { resolveWhatsAppSocketTiming, type WhatsAppSocketTimingOptions } from "./socket-timing.js";
 
 type WaSocket = Awaited<ReturnType<typeof createWaSocket>>;
@@ -496,6 +497,162 @@ export async function startWebLoginWithQr(
   return {
     qrDataUrl,
     message: "Scan this QR in WhatsApp → Linked Devices.",
+  };
+}
+
+// GoClaw fork: pairing-code login as an alternative to QR scanning. Lets the
+// platform dashboard link WhatsApp by typing an 8-character code on the phone
+// instead of scanning a QR (useful when the phone is the only device).
+export type StartWebLoginWithPairingCodeResult = {
+  pairingCode?: string;
+  message: string;
+  code?: typeof WHATSAPP_AUTH_UNSTABLE_CODE;
+};
+
+export async function startWebLoginWithPairingCode(opts: {
+  phoneNumber: string;
+  verbose?: boolean;
+  timeoutMs?: number;
+  force?: boolean;
+  accountId?: string;
+  runtime?: RuntimeEnv;
+}): Promise<StartWebLoginWithPairingCodeResult> {
+  const runtime = opts.runtime ?? defaultRuntime;
+  const cfg = getRuntimeConfig();
+  const account = resolveWhatsAppAccount({ cfg, accountId: opts.accountId });
+  const socketTiming = resolveWhatsAppSocketTiming(cfg);
+  const authState = await readWebAuthExistsForDecision(account.authDir);
+  if (authState.outcome === "unstable") {
+    return {
+      code: WHATSAPP_AUTH_UNSTABLE_CODE,
+      message: "WhatsApp auth state is still stabilizing. Retry login in a moment.",
+    };
+  }
+  if (authState.exists && !opts.force) {
+    const selfId = readWebSelfId(account.authDir);
+    const who = selfId.e164 ?? selfId.jid ?? "unknown";
+    return {
+      message: `WhatsApp is already linked (${who}). Use force to relink.`,
+    };
+  }
+
+  await resetActiveLogin(account.accountId);
+
+  // Clear stale auth state when force is set, so Baileys starts fresh and
+  // goes through the pair-device flow instead of trying to resume.
+  if (opts.force && authState.exists) {
+    await logoutWeb({
+      authDir: account.authDir,
+      isLegacyAuthDir: account.isLegacyAuthDir,
+      runtime,
+    });
+  }
+
+  const digits = opts.phoneNumber.replace(/\D/g, "");
+  if (!digits) {
+    return { message: "phoneNumber must contain digits (E.164 without symbols works best)." };
+  }
+
+  // requestPairingCode MUST be called inside the connection.update handler
+  // that receives the QR event — i.e. in the same synchronous execution
+  // context as the pair-device stanza processing. If we defer to a later
+  // microtask (e.g. by resolving a promise and awaiting it), Baileys has
+  // already committed the socket to "QR scan" mode and the server rejects
+  // the pairing code registration. This is why QR works but pairing code
+  // didn't — they are mutually exclusive flows.
+  let resolvePairing: ((code: string) => void) | null = null;
+  let rejectPairing: ((err: Error) => void) | null = null;
+  const pairingPromise = new Promise<string>((resolve, reject) => {
+    resolvePairing = resolve;
+    rejectPairing = reject;
+  });
+
+  const pairingTimer = setTimeout(
+    () => rejectPairing?.(new Error("Timed out waiting for WhatsApp pairing code")),
+    resolveWhatsAppLoginTimeoutMs(opts.timeoutMs, 30_000, 5000),
+  );
+
+  // sockRef is set right after createWaSocket returns; since onQr fires
+  // asynchronously (after WebSocket connect + Noise handshake), sockRef
+  // will always be populated by the time the callback runs.
+  let sockRef: WaSocket | null = null;
+  let pairingRequested = false;
+
+  let sock: WaSocket;
+  const loginId = randomUUID();
+  try {
+    sock = await createWaSocket(false, Boolean(opts.verbose), {
+      authDir: account.authDir,
+      ...socketTiming,
+      // WhatsApp rejects pairing codes from unrecognized platforms. The
+      // default browser ["openclaw", "cli", ...] fails validation; we must
+      // use a recognized platform for the pairing code flow.
+      browser: Browsers.ubuntu("Chrome") as [string, string, string],
+      onQr: () => {
+        // QR event = pair-device stanza arrived. Call requestPairingCode
+        // RIGHT HERE, inside the event handler, before Baileys processes
+        // anything else. Do NOT defer to a promise chain.
+        if (pairingRequested || !sockRef) {
+          return;
+        }
+        pairingRequested = true;
+        clearTimeout(pairingTimer);
+        runtime.log(info(`Requesting WhatsApp pairing code for +${digits} (inside QR handler)…`));
+        sockRef
+          .requestPairingCode(digits)
+          .then((code: string) => {
+            runtime.log(info(`WhatsApp pairing code generated: ${code}`));
+            resolvePairing?.(code);
+          })
+          .catch((err: unknown) => {
+            rejectPairing?.(err instanceof Error ? err : new Error(String(err)));
+          });
+      },
+    });
+  } catch (err) {
+    clearTimeout(pairingTimer);
+    await resetActiveLogin(account.accountId);
+    return {
+      message: `Failed to start WhatsApp login: ${String(err)}`,
+    };
+  }
+  sockRef = sock;
+
+  const login: ActiveLogin = {
+    accountId: account.accountId,
+    authDir: account.authDir,
+    isLegacyAuthDir: account.isLegacyAuthDir,
+    id: loginId,
+    sock,
+    startedAt: Date.now(),
+    connected: false,
+    waitPromise: Promise.resolve(),
+    qrVersion: 0,
+    qrUpdatePromise: Promise.resolve(),
+    resolveQrUpdate: null,
+    qrRenderPromise: null,
+    verbose: Boolean(opts.verbose),
+    runtime,
+    socketTiming,
+  };
+  resetQrUpdateSignal(login);
+  activeLogins.set(account.accountId, login);
+  attachLoginWaiter(account.accountId, login);
+
+  let pairingCode: string;
+  try {
+    pairingCode = await pairingPromise;
+  } catch (err) {
+    clearTimeout(pairingTimer);
+    await resetActiveLogin(account.accountId);
+    return {
+      message: `Failed to request pairing code: ${String(err)}`,
+    };
+  }
+
+  return {
+    pairingCode,
+    message: "Enter this code in WhatsApp → Linked Devices → Link with phone number.",
   };
 }
 

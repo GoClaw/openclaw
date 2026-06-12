@@ -866,6 +866,18 @@ export const WebLoginStartParamsSchema = Type.Object(
   { additionalProperties: false },
 );
 
+/** GoClaw fork: starts pairing-code login (type the code on the phone instead of scanning a QR). */
+export const WebLoginPairingCodeStartParamsSchema = Type.Object(
+  {
+    phoneNumber: Type.String({ minLength: 5, maxLength: 32 }),
+    force: Type.Optional(Type.Boolean()),
+    timeoutMs: Type.Optional(Type.Integer({ minimum: 0 })),
+    verbose: Type.Optional(Type.Boolean()),
+    accountId: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
 const QrDataUrlSchema = Type.String({
   maxLength: 16_384,
   pattern: "^data:image/png;base64,",

@@ -363,6 +363,18 @@ export const whatsappPlugin: ChannelPlugin<ResolvedWhatsAppAccount> =
             timeoutMs,
             verbose,
           }),
+        // GoClaw fork: pairing-code login (type the code on the phone instead
+        // of scanning a QR).
+        loginWithPairingCodeStart: async ({ phoneNumber, accountId, force, timeoutMs, verbose }) =>
+          await (
+            await loadWhatsAppChannelRuntime()
+          ).startWebLoginWithPairingCode({
+            phoneNumber,
+            accountId,
+            force,
+            timeoutMs,
+            verbose,
+          }),
         loginWithQrWait: async ({ accountId, timeoutMs, currentQrDataUrl }) =>
           await (
             await loadWhatsAppChannelRuntime()

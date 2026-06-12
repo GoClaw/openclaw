@@ -136,6 +136,7 @@ import {
   ChannelsStatusParamsSchema,
   ChannelsStatusResultSchema,
   TalkModeParamsSchema,
+  WebLoginPairingCodeStartParamsSchema,
   WebLoginStartParamsSchema,
   WebLoginWaitParamsSchema,
 } from "./channels.js";
@@ -552,6 +553,7 @@ export const ProtocolSchemas = {
   ChannelsStopParams: ChannelsStopParamsSchema,
   ChannelsLogoutParams: ChannelsLogoutParamsSchema,
   WebLoginStartParams: WebLoginStartParamsSchema,
+  WebLoginPairingCodeStartParams: WebLoginPairingCodeStartParamsSchema,
   WebLoginWaitParams: WebLoginWaitParamsSchema,
 
   // Agent files, artifacts, model catalogs, commands, tools, and skill workshop.

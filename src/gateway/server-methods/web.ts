@@ -3,6 +3,7 @@
 import {
   ErrorCodes,
   errorShape,
+  validateWebLoginPairingCodeStartParams,
   validateWebLoginStartParams,
   validateWebLoginWaitParams,
 } from "../../../packages/gateway-protocol/src/index.js";
@@ -13,7 +14,11 @@ import { formatForLog } from "../ws-log.js";
 import type { GatewayRequestContext, GatewayRequestHandlers, RespondFn } from "./types.js";
 import { assertValidParams } from "./validation.js";
 
-const WEB_LOGIN_METHODS = new Set(["web.login.start", "web.login.wait"]);
+const WEB_LOGIN_METHODS = new Set([
+  "web.login.start",
+  "web.login.wait",
+  "web.login.pairingCode.start",
+]);
 
 /** Resolves the channel plugin that currently owns web QR-login methods. */
 const resolveWebLoginProvider = () =>
@@ -26,7 +31,7 @@ const resolveWebLoginProvider = () =>
 
 type WebLoginProvider = NonNullable<ReturnType<typeof resolveWebLoginProvider>>;
 type WebLoginGateway = NonNullable<WebLoginProvider["gateway"]>;
-type WebLoginGatewayMethod = "loginWithQrStart" | "loginWithQrWait";
+type WebLoginGatewayMethod = "loginWithQrStart" | "loginWithQrWait" | "loginWithPairingCodeStart";
 
 function resolveAccountId(params: unknown): string | undefined {
   return typeof (params as { accountId?: unknown }).accountId === "string"
@@ -181,6 +186,43 @@ export const webHandlers: GatewayRequestHandlers = {
         // running channel/account so a transient login failure does not stop it.
         await context.startChannel(provider.id, accountId);
       }
+      respond(true, result, undefined);
+    } catch (err) {
+      respondWebLoginUnavailable(respond, err);
+    }
+  },
+  // GoClaw fork: pairing-code login — type the 8-character code on the phone
+  // (WhatsApp → Linked Devices → Link with phone number) instead of scanning
+  // a QR. Used by the platform dashboard for phone-only onboarding.
+  "web.login.pairingCode.start": async ({ params, respond, context }) => {
+    if (
+      !assertValidParams(
+        params,
+        validateWebLoginPairingCodeStartParams,
+        "web.login.pairingCode.start",
+        respond,
+      )
+    ) {
+      return;
+    }
+    try {
+      const request = resolveWebLoginRequest({
+        rawParams: params,
+        respond,
+        gatewayMethod: "loginWithPairingCodeStart",
+      });
+      if (!request) {
+        return;
+      }
+      const { accountId, provider, run } = request;
+      await context.stopChannel(provider.id, accountId);
+      const result = await run({
+        phoneNumber: String(params.phoneNumber),
+        force: Boolean(params.force),
+        timeoutMs: typeof params.timeoutMs === "number" ? params.timeoutMs : undefined,
+        verbose: Boolean(params.verbose),
+        accountId,
+      });
       respond(true, result, undefined);
     } catch (err) {
       respondWebLoginUnavailable(respond, err);
