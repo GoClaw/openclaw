@@ -15,17 +15,22 @@ import {
 } from "../../../packages/gateway-protocol/src/index.js";
 import { resolveChannelDmPolicy } from "../../channels/plugins/dm-access.js";
 import { listChannelPlugins } from "../../channels/plugins/index.js";
+import { normalizeChannelId } from "../../channels/plugins/registry.js";
 import { notifyPairingApproved } from "../../channels/plugins/pairing.js";
 import type { ChannelPlugin } from "../../channels/plugins/types.plugin.js";
 import { hasConfiguredCommandOwners } from "../../commands/doctor-command-owner.js";
 import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { bootstrapCommandOwnerFromPairing } from "../../pairing/command-owner.js";
 import {
+  addChannelAllowFromStoreEntry,
   approveChannelPairingRequest,
   CHANNEL_PAIRING_PENDING_MAX,
   CHANNEL_PAIRING_PENDING_TTL_MS,
   dismissChannelPairingRequest,
   listChannelPairingRequests,
+  readChannelAllowFromStore,
+  rejectChannelPairingCode,
+  removeChannelAllowFromStoreEntry,
   resolveChannelPairingRequestId,
 } from "../../pairing/pairing-store.js";
 import { resolveGatewayPluginConfig } from "../runtime-plugin-config.js";
@@ -194,6 +199,23 @@ function respondPairingFailure(respond: RespondFn, error: unknown): void {
       formatForLog(error),
     ),
   );
+}
+
+// GoClaw fork: resolve a channel id for pairing/allow-list management. The
+// plugin registry only knows channels that are configured/loaded, but the
+// GoClaw dashboard manages pairing stores before a channel is first
+// configured; fall back to the sanitized raw id (only used as a path segment).
+function resolveGoClawChannel(params: Record<string, unknown>) {
+  const raw = params.channel;
+  if (typeof raw !== "string") {
+    return null;
+  }
+  const normalized = normalizeChannelId(raw);
+  if (normalized) {
+    return normalized;
+  }
+  const fallback = raw.trim().toLowerCase();
+  return /^[a-z0-9][a-z0-9-]{0,31}$/.test(fallback) ? (fallback as never) : null;
 }
 
 export const channelPairingHandlers: GatewayRequestHandlers = {
@@ -398,5 +420,74 @@ export const channelPairingHandlers: GatewayRequestHandlers = {
     } catch (error) {
       respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, formatForLog(error)));
     }
+  },
+
+  // GoClaw fork: dashboard compat — reject a pairing code (approve minus the
+  // allow-list grant), plus per-channel allowFrom management.
+  "channels.pairing.reject": async ({ params, respond }) => {
+    const channel = resolveGoClawChannel(params);
+    if (!channel) {
+      respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "invalid channel"));
+      return;
+    }
+    const code = String(params.code ?? "").trim();
+    if (!code) {
+      respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "code is required"));
+      return;
+    }
+    const accountId = typeof params.accountId === "string" ? params.accountId : undefined;
+    const result = await rejectChannelPairingCode({ channel, code, accountId });
+    if (!result) {
+      respond(
+        false,
+        undefined,
+        errorShape(ErrorCodes.INVALID_REQUEST, "pairing code not found or expired"),
+      );
+      return;
+    }
+    respond(true, { channel, id: result.id }, undefined);
+  },
+
+  "channels.allowFrom.list": async ({ params, respond }) => {
+    const channel = resolveGoClawChannel(params);
+    if (!channel) {
+      respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "invalid channel"));
+      return;
+    }
+    const accountId = typeof params.accountId === "string" ? params.accountId : undefined;
+    const allowFrom = await readChannelAllowFromStore(channel, process.env, accountId);
+    respond(true, { channel, allowFrom }, undefined);
+  },
+
+  "channels.allowFrom.add": async ({ params, respond }) => {
+    const channel = resolveGoClawChannel(params);
+    if (!channel) {
+      respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "invalid channel"));
+      return;
+    }
+    const entry = String(params.entry ?? "").trim();
+    if (!entry) {
+      respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "entry is required"));
+      return;
+    }
+    const accountId = typeof params.accountId === "string" ? params.accountId : undefined;
+    const result = await addChannelAllowFromStoreEntry({ channel, entry, accountId });
+    respond(true, { channel, changed: result.changed, allowFrom: result.allowFrom }, undefined);
+  },
+
+  "channels.allowFrom.remove": async ({ params, respond }) => {
+    const channel = resolveGoClawChannel(params);
+    if (!channel) {
+      respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "invalid channel"));
+      return;
+    }
+    const entry = String(params.entry ?? "").trim();
+    if (!entry) {
+      respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "entry is required"));
+      return;
+    }
+    const accountId = typeof params.accountId === "string" ? params.accountId : undefined;
+    const result = await removeChannelAllowFromStoreEntry({ channel, entry, accountId });
+    respond(true, { channel, changed: result.changed, allowFrom: result.allowFrom }, undefined);
   },
 };

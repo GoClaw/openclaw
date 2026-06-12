@@ -366,6 +366,11 @@ const CORE_GATEWAY_METHOD_SPECS = [
   ["channels.pairing.list", "channel-pairing", "operator.pairing", "2026.7"],
   ["channels.pairing.approve", "channel-pairing", "dynamic", "2026.7"],
   ["channels.pairing.dismiss", "channel-pairing", "operator.pairing", "2026.7"],
+  // GoClaw fork: reject (dashboard compat) + allow-list management.
+  ["channels.pairing.reject", "channel-pairing", "operator.pairing", "2026.9", { controlPlaneWrite: true }],
+  ["channels.allowFrom.list", "channel-pairing", "operator.read", "2026.9"],
+  ["channels.allowFrom.add", "channel-pairing", "operator.admin", "2026.9", { controlPlaneWrite: true }],
+  ["channels.allowFrom.remove", "channel-pairing", "operator.admin", "2026.9", { controlPlaneWrite: true }],
   ["assistant.media.get", null, "operator.read", "<=2026.7", { advertise: false }],
   ["sessions.get", "sessions-read", "operator.read", "<=2026.7", { advertise: false }],
   ["sessions.resolve", "sessions-read", "operator.read", "<=2026.7", { advertise: false }],
