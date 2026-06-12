@@ -119,6 +119,10 @@ const loadLogsHandlers = lazyHandlerModule(
   () => import("./server-methods/logs.js"),
   (module) => module.logsHandlers,
 );
+const loadChannelPairingHandlers = lazyHandlerModule(
+  () => import("./server-methods/channel-pairing.js"),
+  (module) => module.channelPairingHandlers,
+);
 const loadMemoryHandlers = lazyHandlerModule(
   () => import("./server-methods/memory.js"),
   (module) => module.memoryHandlers,
@@ -354,6 +358,17 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
   ...createLazyCoreHandlers({
     methods: ["web.login.start", "web.login.wait"],
     loadHandlers: loadWebHandlers,
+  }),
+  ...createLazyCoreHandlers({
+    methods: [
+      "channels.pairing.list",
+      "channels.pairing.approve",
+      "channels.pairing.reject",
+      "channels.allowFrom.list",
+      "channels.allowFrom.add",
+      "channels.allowFrom.remove",
+    ],
+    loadHandlers: loadChannelPairingHandlers,
   }),
   ...createLazyCoreHandlers({
     methods: ["memory.status", "memory.files", "memory.read", "memory.write"],

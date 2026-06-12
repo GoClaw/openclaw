@@ -87,6 +87,13 @@ export const CORE_GATEWAY_METHOD_SPECS: readonly CoreGatewayMethodSpec[] = [
   { name: "talk.speak", scope: "operator.write" },
   { name: "talk.mode", scope: "operator.write" },
   { name: "commands.list", scope: "operator.read" },
+  // GoClaw fork: channel pairing + allow-list management for the dashboard.
+  { name: "channels.pairing.list", scope: "operator.read" },
+  { name: "channels.pairing.approve", scope: "operator.admin", controlPlaneWrite: true },
+  { name: "channels.pairing.reject", scope: "operator.admin", controlPlaneWrite: true },
+  { name: "channels.allowFrom.list", scope: "operator.read" },
+  { name: "channels.allowFrom.add", scope: "operator.admin", controlPlaneWrite: true },
+  { name: "channels.allowFrom.remove", scope: "operator.admin", controlPlaneWrite: true },
   // GoClaw fork: memory.* RPC surface for the platform dashboard Knowledge tab.
   { name: "memory.status", scope: "operator.read" },
   { name: "memory.files", scope: "operator.read" },
