@@ -455,6 +455,7 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
       "skills.skillCard",
       "skills.install",
       "skills.update",
+      "skills.create",
       "skills.proposals.list",
       "skills.proposals.inspect",
       "skills.proposals.create",

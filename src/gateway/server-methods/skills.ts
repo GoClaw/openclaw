@@ -1,4 +1,6 @@
 // Gateway RPC handlers for skill discovery, install/update, and proposal workflows.
+import nodeFs from "node:fs";
+import nodePath from "node:path";
 import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
 import {
   ErrorCodes,
@@ -56,6 +58,7 @@ import {
   rejectSkillProposal,
   reviseSkillProposal,
 } from "../../skills/workshop/service.js";
+import { CONFIG_DIR } from "../../utils.js";
 import { skillsUploadHandlers } from "./skills-upload.js";
 import type { GatewayRequestContext, GatewayRequestHandlers, RespondFn } from "./types.js";
 import { assertValidParams, type Validator } from "./validation.js";
@@ -575,5 +578,106 @@ export const skillsHandlers: GatewayRequestHandlers = {
       { ok: true, skillKey: p.skillKey, config: redactConfigObject(updated) },
       undefined,
     );
+  },
+  // GoClaw fork: create a managed skill from inline file contents. Used by the
+  // platform dashboard to push custom skills onto a deployment without shell
+  // access. Files land in CONFIG_DIR/skills/<name>/.
+  "skills.create": ({ params, respond }) => {
+    const name = typeof params?.name === "string" ? params.name.trim() : "";
+    const files = Array.isArray(params?.files)
+      ? (params.files as Array<{ path?: unknown; content?: unknown }>)
+      : null;
+    const overwrite = params?.overwrite === true;
+
+    if (!name) {
+      respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "name is required"));
+      return;
+    }
+    if (!files || files.length === 0) {
+      respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "files are required"));
+      return;
+    }
+    if (
+      !files.every(
+        (f) => typeof f?.path === "string" && f.path.length > 0 && typeof f?.content === "string",
+      )
+    ) {
+      respond(
+        false,
+        undefined,
+        errorShape(ErrorCodes.INVALID_REQUEST, "each file needs a path and content string"),
+      );
+      return;
+    }
+    const checkedFiles = files as Array<{ path: string; content: string }>;
+
+    // Validate skill name (no path traversal, only safe chars)
+    if (/[/\\]|\.\./.test(name)) {
+      respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "invalid skill name"));
+      return;
+    }
+
+    // Ensure at least one file is SKILL.md
+    if (!checkedFiles.some((f) => f.path === "SKILL.md")) {
+      respond(
+        false,
+        undefined,
+        errorShape(ErrorCodes.INVALID_REQUEST, "files must include SKILL.md"),
+      );
+      return;
+    }
+
+    // Validate all file paths (no traversal, no absolute)
+    for (const f of checkedFiles) {
+      if (f.path.startsWith("/") || f.path.includes("..") || f.path.includes("\\")) {
+        respond(
+          false,
+          undefined,
+          errorShape(ErrorCodes.INVALID_REQUEST, `unsafe file path: ${f.path}`),
+        );
+        return;
+      }
+    }
+
+    // Limit aggregate size to 1MB
+    const totalSize = checkedFiles.reduce((sum, f) => sum + f.content.length, 0);
+    if (totalSize > 1_048_576) {
+      respond(
+        false,
+        undefined,
+        errorShape(ErrorCodes.INVALID_REQUEST, "total content exceeds 1MB limit"),
+      );
+      return;
+    }
+
+    const managedSkillsDir = nodePath.join(CONFIG_DIR, "skills");
+    const targetDir = nodePath.join(managedSkillsDir, name);
+
+    // Check if already exists
+    if (nodeFs.existsSync(targetDir) && !overwrite) {
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.INVALID_REQUEST,
+          `skill "${name}" already exists; use overwrite to replace`,
+        ),
+      );
+      return;
+    }
+
+    try {
+      let filesWritten = 0;
+      for (const f of checkedFiles) {
+        const filePath = nodePath.join(targetDir, f.path);
+        nodeFs.mkdirSync(nodePath.dirname(filePath), { recursive: true });
+        nodeFs.writeFileSync(filePath, f.content, "utf-8");
+        filesWritten++;
+      }
+      respond(true, { ok: true, name, path: targetDir, filesWritten }, undefined);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "failed to write skill files";
+      respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, message));
+    }
   },
 };
