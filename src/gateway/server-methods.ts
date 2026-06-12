@@ -549,6 +549,7 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
       "skills.curator.pin",
       "skills.curator.unpin",
       "skills.curator.restore",
+      "skills.create",
       "skills.proposals.list",
       "skills.proposals.inspect",
       "skills.proposals.create",

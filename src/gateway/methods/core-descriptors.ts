@@ -140,6 +140,8 @@ export const CORE_GATEWAY_METHOD_SPECS: readonly CoreGatewayMethodSpec[] = [
   { name: "skills.curator.pin", scope: "operator.admin" },
   { name: "skills.curator.unpin", scope: "operator.admin" },
   { name: "skills.curator.restore", scope: "operator.admin" },
+  // GoClaw fork: dashboard-driven managed skill creation.
+  { name: "skills.create", scope: "operator.admin", controlPlaneWrite: true },
   { name: "skills.proposals.list", scope: "operator.read" },
   { name: "skills.proposals.inspect", scope: "operator.read" },
   { name: "skills.proposals.create", scope: "operator.admin" },
