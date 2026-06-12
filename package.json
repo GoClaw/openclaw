@@ -109,7 +109,6 @@
     "!dist/extensions/tlon/**",
     "!dist/extensions/twitch/**",
     "!dist/extensions/voice-call/**",
-    "!dist/extensions/whatsapp/**",
     "!dist/extensions/zalo/**",
     "!dist/extensions/zalouser/**",
     "!dist/plugin-sdk/extensions/qa-channel/**",
