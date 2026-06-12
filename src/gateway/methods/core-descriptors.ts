@@ -87,6 +87,11 @@ export const CORE_GATEWAY_METHOD_SPECS: readonly CoreGatewayMethodSpec[] = [
   { name: "talk.speak", scope: "operator.write" },
   { name: "talk.mode", scope: "operator.write" },
   { name: "commands.list", scope: "operator.read" },
+  // GoClaw fork: memory.* RPC surface for the platform dashboard Knowledge tab.
+  { name: "memory.status", scope: "operator.read" },
+  { name: "memory.files", scope: "operator.read" },
+  { name: "memory.read", scope: "operator.read" },
+  { name: "memory.write", scope: "operator.write", controlPlaneWrite: true },
   { name: "models.list", scope: "operator.read", startup: true },
   { name: "models.authStatus", scope: "operator.read" },
   { name: "models.authLogout", scope: "operator.admin", controlPlaneWrite: true },
