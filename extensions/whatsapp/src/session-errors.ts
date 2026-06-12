@@ -67,7 +67,11 @@ export function getStatusCode(err: unknown) {
   return (
     (err as { output?: { statusCode?: number } })?.output?.statusCode ??
     (err as { status?: number })?.status ??
-    (err as { error?: { output?: { statusCode?: number } } })?.error?.output?.statusCode
+    (err as { error?: { output?: { statusCode?: number } } })?.error?.output?.statusCode ??
+    // GoClaw fork: Baileys also nests the Boom error under lastDisconnect
+    // (e.g. QR login failures surface as {lastDisconnect:{error:{output:...}}}).
+    (err as { lastDisconnect?: { error?: { output?: { statusCode?: number } } } })?.lastDisconnect
+      ?.error?.output?.statusCode
   );
 }
 

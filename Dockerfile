@@ -189,6 +189,8 @@ COPY --from=runtime-assets --chown=node:node /app/${OPENCLAW_BUNDLED_PLUGIN_DIR}
 COPY --from=runtime-assets --chown=node:node /app/skills ./skills
 COPY --from=runtime-assets --chown=node:node /app/docs ./docs
 COPY --from=runtime-assets --chown=node:node /app/qa ./qa
+# GoClaw fork: Xvfb-aware entrypoint used by ENTRYPOINT below.
+COPY --chown=node:node scripts/container-entrypoint.sh ./scripts/container-entrypoint.sh
 
 # Keep pnpm available in the runtime image for container-local workflows.
 # Use a shared Corepack home so the non-root `node` user does not need a
@@ -309,6 +311,10 @@ RUN install -d -m 0755 -o node -g node /home/node/.config && \
 
 ENV NODE_ENV=production
 
+# GoClaw fork: create /tmp/.X11-unix for Xvfb (must exist before switching to
+# non-root — the node user can't create it at runtime).
+RUN mkdir -p /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix
+
 # Security hardening: Run as non-root user
 # The node:24-bookworm image includes a 'node' user (uid 1000)
 # This reduces the attack surface by preventing container escape via root privileges
@@ -328,5 +334,7 @@ USER node
 # For external access from host/ingress, override bind to "lan" and set auth.
 HEALTHCHECK --interval=3m --timeout=10s --start-period=15s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:18789/healthz').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-ENTRYPOINT ["tini", "-s", "--"]
+# GoClaw fork: chain the Xvfb-aware entrypoint after tini so browser-enabled
+# images get a virtual display; it exec's through to the command unchanged.
+ENTRYPOINT ["tini", "-s", "--", "/app/scripts/container-entrypoint.sh"]
 CMD ["node", "openclaw.mjs", "gateway"]
