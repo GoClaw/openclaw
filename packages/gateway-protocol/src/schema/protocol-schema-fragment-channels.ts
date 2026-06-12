@@ -45,4 +45,6 @@ export const ChannelProtocolSchemas = {
   ChannelsLogoutParams: channels.ChannelsLogoutParamsSchema,
   WebLoginStartParams: channels.WebLoginStartParamsSchema,
   WebLoginWaitParams: channels.WebLoginWaitParamsSchema,
+  // GoClaw fork: pairing-code login params.
+  WebLoginPairingCodeStartParams: channels.WebLoginPairingCodeStartParamsSchema,
 } as const;

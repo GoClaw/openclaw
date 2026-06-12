@@ -9,6 +9,8 @@ export function createBaileysSignalRepository(
 
 export {
   BufferJSON,
+  Browsers,
+  DisconnectReason,
   fetchLatestBaileysVersion,
   makeCacheableSignalKeyStore,
   makeWASocket,

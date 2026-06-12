@@ -404,6 +404,8 @@ const CORE_GATEWAY_METHOD_SPECS = [
   ["nativeHook.invoke", "native-hook-relay", "operator.admin", "<=2026.7", { advertise: false }],
   ["web.login.start", "web", "operator.admin", "<=2026.7", { advertise: false }],
   ["web.login.wait", "web", "operator.admin", "<=2026.7", { advertise: false }],
+  // GoClaw fork: pairing-code login alternative to QR.
+  ["web.login.pairingCode.start", "web", "operator.admin", "2026.9", { advertise: false }],
   // Terminal detach/reattach surface. Kept together near the end so previously
   // advertised method indices stay stable for older clients; new methods append.
   ["terminal.attach", "terminal", "operator.admin", "2026.7"],

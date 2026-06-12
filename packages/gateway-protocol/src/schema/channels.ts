@@ -720,6 +720,18 @@ export const WebLoginStartParamsSchema = closedObject({
   accountId: Type.Optional(Type.String()),
 });
 
+/** GoClaw fork: starts pairing-code login (type the code on the phone instead of scanning a QR). */
+export const WebLoginPairingCodeStartParamsSchema = Type.Object(
+  {
+    phoneNumber: Type.String({ minLength: 5, maxLength: 32 }),
+    force: Type.Optional(Type.Boolean()),
+    timeoutMs: Type.Optional(Type.Integer({ minimum: 0 })),
+    verbose: Type.Optional(Type.Boolean()),
+    accountId: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
 const QrDataUrlSchema = Type.String({
   maxLength: 16_384,
   pattern: "^data:image/png;base64,",
@@ -771,3 +783,5 @@ export type ChannelsStopParams = Static<typeof ChannelsStopParamsSchema>;
 export type ChannelsLogoutParams = Static<typeof ChannelsLogoutParamsSchema>;
 export type WebLoginStartParams = Static<typeof WebLoginStartParamsSchema>;
 export type WebLoginWaitParams = Static<typeof WebLoginWaitParamsSchema>;
+// GoClaw fork: pairing-code login params.
+export type WebLoginPairingCodeStartParams = Static<typeof WebLoginPairingCodeStartParamsSchema>;

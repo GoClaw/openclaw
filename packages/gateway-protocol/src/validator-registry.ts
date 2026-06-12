@@ -509,3 +509,7 @@ export const validateUpdateRunParams = compile(S.UpdateRunParamsSchema);
 export const validateUiCommandParams = compile(S.UiCommandParamsSchema);
 export const validateWebLoginStartParams = compile(S.WebLoginStartParamsSchema);
 export const validateWebLoginWaitParams = compile(S.WebLoginWaitParamsSchema);
+// GoClaw fork: pairing-code login params.
+export const validateWebLoginPairingCodeStartParams = compile(
+  S.WebLoginPairingCodeStartParamsSchema,
+);

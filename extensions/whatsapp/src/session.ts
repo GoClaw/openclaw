@@ -210,6 +210,9 @@ export async function createWaSocket(
     getMessage?: (key: WAMessageKey) => Promise<proto.IMessage | undefined>;
     cachedGroupMetadata?: (jid: string) => Promise<GroupMetadata | undefined>;
     waWebSocketUrl?: string | URL;
+    // GoClaw fork: pairing-code login needs a recognized browser platform —
+    // WhatsApp rejects pairing codes from the default ["openclaw", ...] tuple.
+    browser?: [string, string, string];
   } & WhatsAppSocketTimingOptions = {},
 ): Promise<ReturnType<typeof makeWASocket>> {
   return await createWaSocketInternal(printQr, verbose, opts, "normal");
@@ -339,7 +342,7 @@ async function createWaSocketInternal(
     version,
     logger,
     printQRInTerminal: false,
-    browser: ["openclaw", "cli", VERSION],
+    browser: opts.browser ?? ["openclaw", "cli", VERSION],
     syncFullHistory: false,
     fireInitQueries: receiveMode !== "directory",
     markOnlineOnConnect: false,

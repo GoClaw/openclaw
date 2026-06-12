@@ -431,6 +431,7 @@ export {
   ChannelsLogoutParamsSchema,
   WebLoginStartParamsSchema,
   WebLoginWaitParamsSchema,
+  WebLoginPairingCodeStartParamsSchema,
   AgentKindSchema,
   AgentSummarySchema,
   AgentsFileEntrySchema,
