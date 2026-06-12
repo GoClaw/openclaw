@@ -867,6 +867,7 @@ export function attachGatewayWsMessageHandler(params: GatewayWsMessageHandlerPar
               preserveInsecureLocalControlUiScopes,
               authMethod,
               trustedProxyAuthOk,
+              sharedAuthOk,
             })
           ) {
             clearUnboundScopes();

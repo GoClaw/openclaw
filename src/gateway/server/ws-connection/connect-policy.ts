@@ -88,7 +88,15 @@ export function shouldClearUnboundScopesForMissingDeviceIdentity(params: {
   preserveInsecureLocalControlUiScopes: boolean;
   authMethod: string | undefined;
   trustedProxyAuthOk?: boolean;
+  sharedAuthOk?: boolean;
 }): boolean {
+  // GoClaw fork: backend clients (e.g. the GoClaw platform) authenticate with a
+  // shared gateway token and never present a device identity. Clearing their
+  // requested scopes would deny every scoped method for server-to-server
+  // connections, so preserve scopes when shared-secret auth succeeded.
+  if (params.decision.kind === "allow" && params.sharedAuthOk) {
+    return false;
+  }
   return (
     params.decision.kind !== "allow" ||
     (!params.controlUiAuthPolicy.allowBypass &&
