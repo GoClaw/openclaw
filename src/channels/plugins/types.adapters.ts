@@ -345,6 +345,14 @@ export type ChannelGatewayAdapter<ResolvedAccount = unknown> = {
     timeoutMs?: number;
     verbose?: boolean;
   }) => Promise<ChannelLoginWithQrStartResult>;
+  // GoClaw fork: pairing-code login alternative to QR (web.login.pairingCode.start).
+  loginWithPairingCodeStart?: (params: {
+    phoneNumber: string;
+    accountId?: string;
+    force?: boolean;
+    timeoutMs?: number;
+    verbose?: boolean;
+  }) => Promise<{ pairingCode?: string; message: string }>;
   loginWithQrWait?: (params: {
     accountId?: string;
     timeoutMs?: number;

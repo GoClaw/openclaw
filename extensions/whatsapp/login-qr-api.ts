@@ -1,1 +1,5 @@
-export { startWebLoginWithQr, waitForWebLogin } from "./login-qr-runtime.js";
+export {
+  startWebLoginWithPairingCode,
+  startWebLoginWithQr,
+  waitForWebLogin,
+} from "./login-qr-runtime.js";

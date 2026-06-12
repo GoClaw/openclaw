@@ -436,6 +436,8 @@ import {
   UpdateRunParamsSchema,
   type WakeParams,
   WakeParamsSchema,
+  type WebLoginPairingCodeStartParams,
+  WebLoginPairingCodeStartParamsSchema,
   type WebLoginStartParams,
   WebLoginStartParamsSchema,
   type WebLoginWaitParams,
@@ -869,6 +871,9 @@ export const validateUpdateStatusParams = lazyCompile<UpdateStatusParams>(Update
 export const validateUpdateRunParams = lazyCompile<UpdateRunParams>(UpdateRunParamsSchema);
 export const validateWebLoginStartParams =
   lazyCompile<WebLoginStartParams>(WebLoginStartParamsSchema);
+// GoClaw fork: pairing-code login params.
+export const validateWebLoginPairingCodeStartParams =
+  lazyCompile<WebLoginPairingCodeStartParams>(WebLoginPairingCodeStartParamsSchema);
 export const validateWebLoginWaitParams = lazyCompile<WebLoginWaitParams>(WebLoginWaitParamsSchema);
 
 function firstStringParam(value: unknown): string | undefined {
@@ -1066,6 +1071,7 @@ export {
   ChannelsStopParamsSchema,
   ChannelsLogoutParamsSchema,
   WebLoginStartParamsSchema,
+  WebLoginPairingCodeStartParamsSchema,
   WebLoginWaitParamsSchema,
   AgentSummarySchema,
   AgentsFileEntrySchema,
@@ -1219,6 +1225,7 @@ export type {
   ChannelsStopParams,
   ChannelsLogoutParams,
   WebLoginStartParams,
+  WebLoginPairingCodeStartParams,
   WebLoginWaitParams,
   AgentSummary,
   AgentsFileEntry,

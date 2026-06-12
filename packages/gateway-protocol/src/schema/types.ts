@@ -162,6 +162,7 @@ export type ChannelsStartParams = SchemaType<"ChannelsStartParams">;
 export type ChannelsStopParams = SchemaType<"ChannelsStopParams">;
 export type ChannelsLogoutParams = SchemaType<"ChannelsLogoutParams">;
 export type WebLoginStartParams = SchemaType<"WebLoginStartParams">;
+export type WebLoginPairingCodeStartParams = SchemaType<"WebLoginPairingCodeStartParams">;
 export type WebLoginWaitParams = SchemaType<"WebLoginWaitParams">;
 
 /** Agent config-file CRUD and artifact download/list payloads. */

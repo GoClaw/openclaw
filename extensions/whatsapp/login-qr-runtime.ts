@@ -1,4 +1,5 @@
 type StartWebLoginWithQr = typeof import("./src/login-qr.js").startWebLoginWithQr;
+type StartWebLoginWithPairingCode = typeof import("./src/login-qr.js").startWebLoginWithPairingCode;
 type WaitForWebLogin = typeof import("./src/login-qr.js").waitForWebLogin;
 
 let loginQrModulePromise: Promise<typeof import("./src/login-qr.js")> | null = null;
@@ -13,6 +14,15 @@ export async function startWebLoginWithQr(
 ): ReturnType<StartWebLoginWithQr> {
   const { startWebLoginWithQr: startWebLoginWithQrLocal } = await loadLoginQrModule();
   return await startWebLoginWithQrLocal(...args);
+}
+
+// GoClaw fork: pairing-code login surface.
+export async function startWebLoginWithPairingCode(
+  ...args: Parameters<StartWebLoginWithPairingCode>
+): ReturnType<StartWebLoginWithPairingCode> {
+  const { startWebLoginWithPairingCode: startWebLoginWithPairingCodeLocal } =
+    await loadLoginQrModule();
+  return await startWebLoginWithPairingCodeLocal(...args);
 }
 
 export async function waitForWebLogin(

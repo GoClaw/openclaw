@@ -356,7 +356,7 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
     loadHandlers: loadExecApprovalsHandlers,
   }),
   ...createLazyCoreHandlers({
-    methods: ["web.login.start", "web.login.wait"],
+    methods: ["web.login.start", "web.login.wait", "web.login.pairingCode.start"],
     loadHandlers: loadWebHandlers,
   }),
   ...createLazyCoreHandlers({

@@ -238,6 +238,8 @@ export const CORE_GATEWAY_METHOD_SPECS: readonly CoreGatewayMethodSpec[] = [
   { name: "nativeHook.invoke", scope: "operator.admin", advertise: false },
   { name: "web.login.start", scope: "operator.admin", advertise: false },
   { name: "web.login.wait", scope: "operator.admin", advertise: false },
+  // GoClaw fork: pairing-code login alternative to QR.
+  { name: "web.login.pairingCode.start", scope: "operator.admin", advertise: false },
 ] as const;
 
 const CORE_GATEWAY_METHOD_SPEC_BY_NAME: ReadonlyMap<string, CoreGatewayMethodSpec> = new Map(

@@ -1,4 +1,5 @@
 import {
+  startWebLoginWithPairingCode as startWebLoginWithPairingCodeImpl,
   startWebLoginWithQr as startWebLoginWithQrImpl,
   waitForWebLogin as waitForWebLoginImpl,
 } from "../login-qr-runtime.js";
@@ -32,6 +33,8 @@ type ReadWebSelfId = typeof import("./auth-store.js").readWebSelfId;
 type WebAuthExists = typeof import("./auth-store.js").webAuthExists;
 type LoginWeb = typeof import("./login.js").loginWeb;
 type StartWebLoginWithQr = typeof import("../login-qr-runtime.js").startWebLoginWithQr;
+type StartWebLoginWithPairingCode =
+  typeof import("../login-qr-runtime.js").startWebLoginWithPairingCode;
 type WaitForWebLogin = typeof import("../login-qr-runtime.js").waitForWebLogin;
 type WhatsAppSetupWizard = typeof import("./setup-surface.js").whatsappSetupWizard;
 type MonitorWebChannel = typeof import("./auto-reply/monitor.js").monitorWebChannel;
@@ -100,6 +103,13 @@ export async function startWebLoginWithQr(
   ...args: Parameters<StartWebLoginWithQr>
 ): ReturnType<StartWebLoginWithQr> {
   return await startWebLoginWithQrImpl(...args);
+}
+
+// GoClaw fork: pairing-code login surface.
+export async function startWebLoginWithPairingCode(
+  ...args: Parameters<StartWebLoginWithPairingCode>
+): ReturnType<StartWebLoginWithPairingCode> {
+  return await startWebLoginWithPairingCodeImpl(...args);
 }
 
 export async function waitForWebLogin(
