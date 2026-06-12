@@ -154,6 +154,10 @@ const loadTerminalHandlers = lazyHandlerModule(
   () => import("./server-methods/terminal.js"),
   (module) => module.terminalHandlers,
 );
+const loadMemoryHandlers = lazyHandlerModule(
+  () => import("./server-methods/memory.js"),
+  (module) => module.memoryHandlers,
+);
 const loadModelsAuthStatusHandlers = lazyHandlerModule(
   () => import("./server-methods/models-auth-status.js"),
   (module) => module.modelsAuthStatusHandlers,
@@ -431,6 +435,10 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
   ...createLazyCoreHandlers({
     methods: ["web.login.start", "web.login.wait"],
     loadHandlers: loadWebHandlers,
+  }),
+  ...createLazyCoreHandlers({
+    methods: ["memory.status", "memory.files", "memory.read", "memory.write"],
+    loadHandlers: loadMemoryHandlers,
   }),
   ...createLazyCoreHandlers({
     methods: ["models.list"],
