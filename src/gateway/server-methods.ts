@@ -121,6 +121,8 @@ const CORE_GATEWAY_HANDLER_MODULES = {
   logs: () => import("./server-methods/logs.js").then((module) => module.logsHandlers),
   "memory-search": () =>
     import("./server-methods/memory-search.js").then((module) => module.memorySearchHandlers),
+  // GoClaw fork: memory.* RPC surface for the platform dashboard Knowledge tab.
+  memory: () => import("./server-methods/memory.js").then((module) => module.memoryHandlers),
   terminal: () => import("./server-methods/terminal.js").then((module) => module.terminalHandlers),
   "ui-command": () =>
     import("./server-methods/ui-command.js").then((module) => module.uiCommandHandlers),

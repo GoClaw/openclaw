@@ -516,6 +516,11 @@ const CORE_GATEWAY_METHOD_SPECS = [
     { controlPlaneWrite: true },
   ],
   ["memory.search", "memory-search", "operator.read", "2026.7"],
+  // GoClaw fork: memory.* RPC surface for the platform dashboard Knowledge tab.
+  ["memory.status", "memory", "operator.read", "2026.9"],
+  ["memory.files", "memory", "operator.read", "2026.9"],
+  ["memory.read", "memory", "operator.read", "2026.9"],
+  ["memory.write", "memory", "operator.write", "2026.9", { controlPlaneWrite: true }],
   // Additive Skill Workshop methods append so older advertised indices stay stable.
   ["skills.proposals.events.list", "skills", "operator.read", "2026.7"],
   ["skills.proposals.evaluate", "skills", "operator.admin", "2026.7", { controlPlaneWrite: true }],
