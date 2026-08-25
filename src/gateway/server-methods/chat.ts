@@ -2985,6 +2985,7 @@ async function readChatHistoryPage(params: {
   maxHistoryBytes: number;
   effectiveMaxChars: number;
   offset: number | undefined;
+  keepMedia: boolean;
 }): Promise<ChatHistoryPage> {
   const {
     entry,
@@ -2997,6 +2998,7 @@ async function readChatHistoryPage(params: {
     maxHistoryBytes,
     effectiveMaxChars,
     offset,
+    keepMedia,
   } = params;
   if (!sessionId || !storePath) {
     return { messages: [] };
@@ -3062,9 +3064,11 @@ async function readChatHistoryPage(params: {
         ? projectRecentChatDisplayMessages(recencyFilteredMessages, {
             maxChars: effectiveMaxChars,
             maxMessages: max,
+            keepMedia,
           })
         : projectChatDisplayMessages(recencyFilteredMessages, {
             maxChars: effectiveMaxChars,
+            keepMedia,
           });
     const windowed =
       offset === 0 ? projected : capOffsetChatHistoryProjectedMessages(projected, max);
@@ -3114,6 +3118,7 @@ async function readChatHistoryPage(params: {
       projectRecentChatDisplayMessages(recencyFilteredMessages, {
         maxChars: effectiveMaxChars,
         maxMessages: max,
+        keepMedia,
       }),
     ),
   };
@@ -3142,12 +3147,13 @@ async function handleChatHistoryRequest({
     );
     return;
   }
-  const { sessionKey, limit, offset, maxChars } = params as {
+  const { sessionKey, limit, offset, maxChars, includeMedia } = params as {
     sessionKey: string;
     agentId?: string;
     limit?: number;
     offset?: number;
     maxChars?: number;
+    includeMedia?: boolean;
   };
   const agentIdOverride = normalizeOptionalText((params as { agentId?: string }).agentId);
   const requestedAgentId = resolveRequestedChatAgentId({
@@ -3213,6 +3219,7 @@ async function handleChatHistoryRequest({
     maxHistoryBytes,
     effectiveMaxChars,
     offset,
+    keepMedia: includeMedia === true,
   });
   const normalized = historyPage.messages;
   const perMessageHardCap = Math.min(CHAT_HISTORY_MAX_SINGLE_MESSAGE_BYTES, maxHistoryBytes);

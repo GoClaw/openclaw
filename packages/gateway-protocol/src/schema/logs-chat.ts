@@ -34,6 +34,9 @@ export const ChatHistoryParamsSchema = Type.Object(
     limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 1000 })),
     offset: Type.Optional(Type.Integer({ minimum: 0 })),
     maxChars: Type.Optional(Type.Integer({ minimum: 1, maximum: 500_000 })),
+    // GoClaw fork: preserve base64 image data in content blocks so the
+    // platform dashboard can render screenshots inline.
+    includeMedia: Type.Optional(Type.Boolean()),
   },
   { additionalProperties: false },
 );
