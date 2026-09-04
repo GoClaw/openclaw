@@ -307,7 +307,7 @@ async function authenticateGatewayConnectCore(
       !device &&
       !skipLocalBackendSelfPairing &&
       !preserveLocalCliSharedAuthScopes &&
-      shouldClearUnboundScopesForMissingDeviceIdentity({ decision, authMethod })
+      shouldClearUnboundScopesForMissingDeviceIdentity({ decision, authMethod, sharedAuthOk })
     ) {
       clearUnboundScopes();
     }

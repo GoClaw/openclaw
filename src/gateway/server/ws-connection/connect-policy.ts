@@ -58,7 +58,16 @@ type MissingDeviceIdentityDecision =
 export function shouldClearUnboundScopesForMissingDeviceIdentity(params: {
   decision: MissingDeviceIdentityDecision;
   authMethod: string | undefined;
+  sharedAuthOk?: boolean;
 }): boolean {
+  // GoClaw fork: backend clients (e.g. the GoClaw platform and mobile app)
+  // authenticate with a shared gateway token and never present a device
+  // identity. Clearing their requested scopes would deny every scoped method
+  // for server-to-server connections, so preserve scopes when shared-secret
+  // auth succeeded.
+  if (params.decision.kind === "allow" && params.sharedAuthOk) {
+    return false;
+  }
   return (
     params.decision.kind !== "allow" ||
     params.authMethod === "token" ||
