@@ -15,8 +15,8 @@ import {
 } from "../../../packages/gateway-protocol/src/index.js";
 import { resolveChannelDmPolicy } from "../../channels/plugins/dm-access.js";
 import { listChannelPlugins } from "../../channels/plugins/index.js";
-import { normalizeChannelId } from "../../channels/plugins/registry.js";
 import { notifyPairingApproved } from "../../channels/plugins/pairing.js";
+import { normalizeChannelId } from "../../channels/plugins/registry.js";
 import type { ChannelPlugin } from "../../channels/plugins/types.plugin.js";
 import { hasConfiguredCommandOwners } from "../../commands/doctor-command-owner.js";
 import type { OpenClawConfig } from "../../config/types.openclaw.js";
@@ -88,6 +88,14 @@ async function listPairingAccounts(params: {
   const requestedAccount = normalizeFilter(params.accountId);
   const pairingPlugins = listChannelPlugins().filter((plugin) => plugin.pairing);
   if (requestedChannel && !pairingPlugins.some((plugin) => plugin.id === requestedChannel)) {
+    // GoClaw fork: the plugin registry only knows channels that are
+    // configured/loaded, but the GoClaw dashboard lists pairing requests on
+    // fresh deployments before any channel is configured. A sanitized channel
+    // id that is simply not loaded has no accounts (and no pending requests),
+    // so answer with an empty list instead of rejecting the call.
+    if (/^[a-z0-9][a-z0-9-]{0,31}$/.test(requestedChannel)) {
+      return [];
+    }
     throw new InvalidPairingTargetError(`unknown pairing channel: ${params.channel}`);
   }
 
