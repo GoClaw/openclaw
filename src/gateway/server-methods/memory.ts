@@ -1,10 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-
 import { ErrorCodes, errorShape } from "../../../packages/gateway-protocol/src/index.js";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import type { OpenClawConfig } from "../../config/types.openclaw.js";
-import { getActiveMemorySearchManager } from "../../plugins/memory-runtime.js";
+import { getActiveMemorySearchManagerCore } from "../../plugins/memory-runtime.js";
 import type { GatewayRequestHandlers } from "./types.js";
 
 // GoClaw fork: memory.* gateway RPC methods.
@@ -96,7 +95,9 @@ async function writeWorkspaceFile(
 
 async function safeGetManager(cfg: OpenClawConfig, agentId: string) {
   try {
-    const { manager } = await getActiveMemorySearchManager({ cfg, agentId });
+    // Transient lifecycle (same as the native memory.search handler) so request
+    // cleanup cannot close a shared manager.
+    const { manager } = await getActiveMemorySearchManagerCore({ cfg, agentId, purpose: "cli" });
     return manager;
   } catch {
     return null;
