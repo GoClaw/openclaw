@@ -62,7 +62,11 @@ function projectChatHistoryMediaReference(value: unknown): string | undefined {
   }
 }
 
-function projectChatHistoryMediaBlock(entry: Record<string, unknown>, fact = false): boolean {
+function projectChatHistoryMediaBlock(
+  entry: Record<string, unknown>,
+  fact = false,
+  keepMedia = false,
+): boolean {
   if (!fact && (typeof entry.type !== "string" || !/^(?:image|audio|video)$/u.test(entry.type))) {
     return false;
   }
@@ -88,12 +92,16 @@ function projectChatHistoryMediaBlock(entry: Record<string, unknown>, fact = fal
     if (encodedPayload === undefined && typeof payload === "string") {
       encodedPayload = payload;
     }
-    for (const field of privateFields) {
-      if (!Object.hasOwn(record, field)) {
-        continue;
+    // GoClaw fork: keepMedia preserves base64 image data so the dashboard can
+    // render screenshots inline (chat.history includeMedia param).
+    if (!(keepMedia && !fact && media.type === "image")) {
+      for (const field of privateFields) {
+        if (!Object.hasOwn(record, field)) {
+          continue;
+        }
+        delete record[field];
+        omitted = true;
       }
-      delete record[field];
-      omitted = true;
     }
     const recordReferences =
       record === media && sourceIsReference ? [...referenceFields, "source"] : referenceFields;
@@ -165,7 +173,7 @@ function projectChatHistoryMediaFacts(value: unknown): unknown[] | undefined {
 
 export function sanitizeChatHistoryContentBlock(
   block: unknown,
-  opts?: { preserveExactToolPayload?: boolean; maxChars?: number },
+  opts?: { preserveExactToolPayload?: boolean; maxChars?: number; keepMedia?: boolean },
 ): { block: unknown; changed: boolean; truncated: boolean } {
   if (!block || typeof block !== "object") {
     return { block, changed: false, truncated: false };
@@ -230,7 +238,7 @@ export function sanitizeChatHistoryContentBlock(
     delete entry.openclawReasoningReplay;
     changed = true;
   }
-  const mediaChanged = projectChatHistoryMediaBlock(entry);
+  const mediaChanged = projectChatHistoryMediaBlock(entry, false, opts?.keepMedia === true);
   const attachmentChanged = projectChatHistoryAttachmentBlock(entry);
   changed ||= mediaChanged || attachmentChanged;
   return { block: changed ? entry : block, changed, truncated };
@@ -461,6 +469,7 @@ function projectWorkspaceConflictDetails(
 export function sanitizeChatHistoryMessage(
   message: unknown,
   maxChars: number = DEFAULT_CHAT_HISTORY_TEXT_MAX_CHARS,
+  keepMedia = false,
 ): { message: unknown; changed: boolean } {
   if (!message || typeof message !== "object") {
     return { message, changed: false };
@@ -576,6 +585,7 @@ export function sanitizeChatHistoryMessage(
       const sanitized = sanitizeChatHistoryContentBlock(content[index], {
         preserveExactToolPayload,
         maxChars,
+        keepMedia,
       });
       const contentBlock = stripAssistantControlTokens ? readRecord(sanitized.block) : undefined;
       if (
@@ -708,7 +718,7 @@ export function shouldDropAssistantHistoryMessage(message: unknown): boolean {
 export function sanitizeChatHistoryMessages(
   messages: unknown[],
   maxChars: number = DEFAULT_CHAT_HISTORY_TEXT_MAX_CHARS,
-  opts?: { includeCommentaryFallbacks?: boolean },
+  opts?: { includeCommentaryFallbacks?: boolean; keepMedia?: boolean },
 ): unknown[] {
   if (messages.length === 0) {
     return messages;
@@ -718,7 +728,11 @@ export function sanitizeChatHistoryMessages(
   for (const message of messages) {
     if (opts?.includeCommentaryFallbacks === true) {
       for (const commentary of projectAssistantCommentaryFallbacks(message, maxChars)) {
-        const projected = sanitizeChatHistoryMessage(commentary, maxChars);
+        const projected = sanitizeChatHistoryMessage(
+          commentary,
+          maxChars,
+          opts?.keepMedia === true,
+        );
         next.push(projected.message);
         changed = true;
       }
@@ -727,7 +741,7 @@ export function sanitizeChatHistoryMessages(
       changed = true;
       continue;
     }
-    const res = sanitizeChatHistoryMessage(message, maxChars);
+    const res = sanitizeChatHistoryMessage(message, maxChars, opts?.keepMedia === true);
     changed ||= res.changed;
     if (res.changed && shouldDropAssistantHistoryMessage(res.message)) {
       changed = true;

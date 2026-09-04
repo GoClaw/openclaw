@@ -48,6 +48,9 @@ export const ChatHistoryParamsSchema = closedObject({
   messageId: Type.Optional(NonEmptyString),
   sessionId: Type.Optional(NonEmptyString),
   maxChars: Type.Optional(Type.Integer({ minimum: 1, maximum: 500_000 })),
+  // GoClaw fork: preserve base64 image data in content blocks so the
+  // platform dashboard can render screenshots inline.
+  includeMedia: Type.Optional(Type.Boolean()),
 });
 
 /** Accepted input awaiting a turn, separate from canonical model history. */

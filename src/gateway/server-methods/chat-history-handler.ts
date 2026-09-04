@@ -188,6 +188,7 @@ async function handleChatHistoryRequest({
     messageId,
     sessionId: requestedSessionId,
     maxChars,
+    includeMedia,
     pendingBefore,
     inputRunIds,
   } = params as {
@@ -199,6 +200,7 @@ async function handleChatHistoryRequest({
     messageId?: string;
     sessionId?: string;
     maxChars?: number;
+    includeMedia?: boolean;
     pendingBefore?: number;
     inputRunIds?: string[];
   };
@@ -373,6 +375,8 @@ async function handleChatHistoryRequest({
               effectiveMaxChars,
               offset,
               messageId,
+              // GoClaw fork: keep base64 image data when the dashboard asks for it.
+              keepMedia: includeMedia === true,
             }),
           {
             config: cfg,

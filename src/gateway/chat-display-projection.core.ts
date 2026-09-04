@@ -42,6 +42,8 @@ type ChatDisplayProjectionOptions = {
   stripEnvelope?: boolean;
   turnBoundaryPending?: boolean;
   streamErrorFallbackPending?: boolean;
+  // GoClaw fork: preserve base64 image data (chat.history includeMedia).
+  keepMedia?: boolean;
 };
 
 /** Keep profile display reads local to one history page or event projection operation. */
@@ -368,6 +370,7 @@ export function projectChatDisplayMessagesWithState(
       toProjectedMessages(
         sanitizeChatHistoryMessages(projectedErrors, Number.MAX_SAFE_INTEGER, {
           includeCommentaryFallbacks: options?.includeCommentaryFallbacks,
+          keepMedia: options?.keepMedia,
         }),
       ),
     ),
@@ -376,6 +379,7 @@ export function projectChatDisplayMessagesWithState(
   const displayMessages = sanitizeChatHistoryMessages(
     mergeTtsSupplementMessages(filtered.messages),
     options?.maxChars ?? DEFAULT_CHAT_HISTORY_TEXT_MAX_CHARS,
+    { keepMedia: options?.keepMedia },
   ) as Array<Record<string, unknown>>;
   return {
     messages: projectCurrentUserProfileAvatars(

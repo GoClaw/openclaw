@@ -228,6 +228,7 @@ export async function readChatHistoryPage(params: {
   offset: number | undefined;
   messageId: string | undefined;
   ignoreCliSessionImports?: boolean;
+  keepMedia?: boolean;
 }): Promise<ChatHistoryPage> {
   const {
     entry,
@@ -241,6 +242,7 @@ export async function readChatHistoryPage(params: {
     effectiveMaxChars,
     offset,
     messageId,
+    keepMedia,
   } = params;
   if (!sessionId || !storePath) {
     if (messageId) {
@@ -317,14 +319,18 @@ export async function readChatHistoryPage(params: {
           max,
           Math.max(readPage.messages.length, readPage.totalMessages > pageOffset ? 1 : 0),
         );
-    const projected = incrementalTail
-      ? incrementalTail.projected
-      : projectChatDisplayMessages(localMessages, {
-          includeCommentaryFallbacks: true,
-          maxChars: effectiveMaxChars,
-          resolveCurrentUserProfileDisplay,
-          turnBoundaryPending: isHeartbeatHistoryTurnBoundaryMessage(overreadContextMessage),
-        });
+    // GoClaw fork: the incremental tail caches a media-stripped projection, so
+    // re-project from the raw window when the dashboard asks for inline media.
+    const projected =
+      incrementalTail && !keepMedia
+        ? incrementalTail.projected
+        : projectChatDisplayMessages(localMessages, {
+            includeCommentaryFallbacks: true,
+            maxChars: effectiveMaxChars,
+            resolveCurrentUserProfileDisplay,
+            turnBoundaryPending: isHeartbeatHistoryTurnBoundaryMessage(overreadContextMessage),
+            keepMedia,
+          });
     const windowed = messageId
       ? (capChatHistoryAroundMessage({
           messages: projected,
@@ -414,6 +420,7 @@ export async function readChatHistoryPage(params: {
       includeCommentaryFallbacks: true,
       maxChars: effectiveMaxChars,
       resolveCurrentUserProfileDisplay,
+      keepMedia,
     });
     return {
       activeLeafEntryId,
