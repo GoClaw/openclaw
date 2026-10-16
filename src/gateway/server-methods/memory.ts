@@ -1,11 +1,17 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-
-import { resolveDefaultAgentId, resolveAgentWorkspaceDir } from "../../agents/agent-scope.js";
-import { loadConfig } from "../../config/config.js";
-import { getMemorySearchManager } from "../../memory/index.js";
-import { ErrorCodes, errorShape } from "../protocol/index.js";
+import { ErrorCodes, errorShape } from "../../../packages/gateway-protocol/src/index.js";
+import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../../agents/agent-scope.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import { getActiveMemorySearchManagerCore } from "../../plugins/memory-runtime.js";
 import type { GatewayRequestHandlers } from "./types.js";
+
+// GoClaw fork: memory.* gateway RPC methods.
+//
+// The GoClaw platform dashboard exposes a Knowledge/Memory tab backed by these
+// methods (list, read, and write agent workspace markdown files). Upstream has
+// no equivalent operator-facing RPC surface, so this handler module is
+// maintained in the fork and registered in server-methods.ts.
 
 async function listWorkspaceFiles(
   workspaceDir: string,
@@ -87,9 +93,11 @@ async function writeWorkspaceFile(
   return { ok: true, path: relPath };
 }
 
-async function safeGetManager(cfg: ReturnType<typeof loadConfig>, agentId: string) {
+async function safeGetManager(cfg: OpenClawConfig, agentId: string) {
   try {
-    const { manager } = await getMemorySearchManager({ cfg, agentId });
+    // Transient lifecycle (same as the native memory.search handler) so request
+    // cleanup cannot close a shared manager.
+    const { manager } = await getActiveMemorySearchManagerCore({ cfg, agentId, purpose: "cli" });
     return manager;
   } catch {
     return null;
@@ -97,9 +105,9 @@ async function safeGetManager(cfg: ReturnType<typeof loadConfig>, agentId: strin
 }
 
 export const memoryHandlers: GatewayRequestHandlers = {
-  "memory.status": async ({ params, respond }) => {
+  "memory.status": async ({ params, respond, context }) => {
     try {
-      const cfg = loadConfig();
+      const cfg = context.getRuntimeConfig();
       const agentId =
         typeof params?.agentId === "string" ? params.agentId : resolveDefaultAgentId(cfg);
       const workspaceDir = resolveAgentWorkspaceDir(cfg, agentId);
@@ -147,9 +155,9 @@ export const memoryHandlers: GatewayRequestHandlers = {
     }
   },
 
-  "memory.files": async ({ params, respond }) => {
+  "memory.files": async ({ params, respond, context }) => {
     try {
-      const cfg = loadConfig();
+      const cfg = context.getRuntimeConfig();
       const agentId =
         typeof params?.agentId === "string" ? params.agentId : resolveDefaultAgentId(cfg);
       const workspaceDir = resolveAgentWorkspaceDir(cfg, agentId);
@@ -161,9 +169,9 @@ export const memoryHandlers: GatewayRequestHandlers = {
     }
   },
 
-  "memory.read": async ({ params, respond }) => {
+  "memory.read": async ({ params, respond, context }) => {
     try {
-      const cfg = loadConfig();
+      const cfg = context.getRuntimeConfig();
       const agentId =
         typeof params?.agentId === "string" ? params.agentId : resolveDefaultAgentId(cfg);
       const workspaceDir = resolveAgentWorkspaceDir(cfg, agentId);
@@ -196,9 +204,9 @@ export const memoryHandlers: GatewayRequestHandlers = {
     }
   },
 
-  "memory.write": async ({ params, respond }) => {
+  "memory.write": async ({ params, respond, context }) => {
     try {
-      const cfg = loadConfig();
+      const cfg = context.getRuntimeConfig();
       const agentId =
         typeof params?.agentId === "string" ? params.agentId : resolveDefaultAgentId(cfg);
       const workspaceDir = resolveAgentWorkspaceDir(cfg, agentId);
