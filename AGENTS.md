@@ -11,11 +11,12 @@
   *local-first*: un **Gateway** con plano de control WebSocket (puerto 18789) que conecta un agente (runtime Pi)
   con canales de mensajería (WhatsApp vía Baileys, Telegram, Slack, Discord, Signal, iMessage, Teams, Matrix…),
   apps (macOS/iOS/Android), navegador por CDP, cron, skills y memoria.
-- **Para quién / para qué**: GoClaw usa este fork como **backend de agentes** de su propio producto. Un
-  dashboard/backend de GoClaw (en los commits aparece también como «GoCrawl») se conecta a cada gateway por WS
-  con token compartido y lo maneja por RPC: muestra memoria («Knowledge»), chat con capturas del navegador,
-  crea skills y vincula WhatsApp. Ese dashboard **no vive en este repo** (repo y ubicación: por confirmar).
-- **Lo que añade el fork** (14 commits de Jonatan Vazquez sobre upstream `e426a9bb6fe`, feb-2026):
+- **Para quién / para qué**: es el motor de **GoClaw** (www.goclaw.app), un SaaS que da a cada cliente su
+  propio bot OpenClaw alojado. El dashboard/backend es otro repo, **`jonatanvazquez/mymolt`** (Next.js +
+  Prisma, privado; en un commit aparece como «GoCrawl»): crea un contenedor por cliente y lo maneja por WS
+  con token compartido y por las RPC de este fork (memoria «Knowledge», chat con capturas, skills, WhatsApp).
+- **Lo que añade el fork** (portado a mano en cada sincronización con upstream; en `main` son 14 commits sobre
+  `e426a9bb6fe`, feb-2026; en `goclaw-sync-2026-09-04` son 11 commits «GoClaw port» sobre upstream del 02-sep):
   - RPC de memoria: `memory.status`, `memory.files`, `memory.read`, `memory.write` → `src/gateway/server-methods/memory.ts`.
   - `skills.create` → `src/gateway/server-methods/skills.ts`; `chat.inject` pasa a método de escritura (operator).
   - `chat.history` con `includeMedia=true` conserva imágenes base64 → `src/gateway/server-methods/chat.ts`.
@@ -27,9 +28,9 @@
     (servidor a servidor) → `src/gateway/server/ws-connection/message-handler.ts`.
   - Docker con navegador: `chromium` + `xvfb` del sistema (`--build-arg OPENCLAW_INSTALL_BROWSER=1`) y
     `scripts/container-entrypoint.sh` que arranca Xvfb; `src/browser/chrome.ts` limpia locks de Chrome.
-- **Estado**: el último commit en `main` es del **2026-02-20**; upstream sigue activo (va ~8 meses por delante).
-  Versión en `package.json`: `2026.2.18`. CI del fork sin pasar: `CI` siempre cancelado y `Docker Release`
-  falla (ver §4). ¿Se sigue usando en producción? **por confirmar**.
+- **Estado (verificado 2026-10-16)**: **en uso**. Producción corre **2026.9.1**, que sale de la rama
+  `goclaw-sync-2026-09-04`, **no de `main`**. `main` se quedó en `2026.2.18` (20-feb) y ya no es lo que corre.
+  Hay 44 bots activos y 12 pre-aprovisionados.
 
 ## 2. Mapa del repo
 
@@ -64,15 +65,29 @@
 
 ## 4. Despliegue
 
-- **Ramas**: `main` es la única viva del fork (las otras ~270 ramas remotas son de upstream). Cambios por PR
-  desde worktree; nunca push a `main`. Remotos: `origin` = GoClaw/openclaw, `upstream` = openclaw/openclaw.
-- **Publicación**: `docker-release.yml` construye en cada push a `main` (o tag `v*`) imágenes amd64/arm64 para
-  `ghcr.io/<repo>`. ⚠️ **Falla desde el 2026-02-19**: `repository name (GoClaw/openclaw-cache) must be lowercase`
-  (la org tiene mayúsculas). Solo 1 build OK (commit `577ceac504`, 2026-02-19). Las imágenes con los últimos
-  commits del fork, por lo tanto, **no se publicaron** por esta vía.
-- **Dónde corre en producción**: **por confirmar** (no hay manifiestos de GoClaw en el repo; ¿Fly, Render,
-  contenedores propios del dashboard?). Imagen que se usa realmente: por confirmar.
-- `ci.yml` aparece siempre como *cancelled* en el fork (por confirmar si es por concurrencia o por runners).
+- **Ramas**: el código vivo está en ramas de sincronización `goclaw-sync-AAAA-MM-DD`: la upstream del día y,
+  encima, los commits «GoClaw port» (`goclaw-sync-2026-06-03`, `-08-10` y `-09-04`, que es la vigente). `main`
+  está congelada en feb-2026. Las otras ~270 ramas remotas son de upstream. Remotos: `origin` = GoClaw/openclaw,
+  `upstream` = openclaw/openclaw. Trabaja desde un worktree y abre PR; nunca hagas push a `main`.
+- **Dónde corre**: en **hosts Docker de Hetzner** («hatchery») que administra mymolt. El único activo hoy es
+  **`hetzner-ash-21`** (56/56 plazas). Cada bot es un contenedor `openclaw:latest` detrás de Traefik, en
+  `<id>.bot.mymolt.app`. Los hosts se guardan en la tabla `HostServer` de la BD de mymolt; los demás están
+  inactivos o retirados, y srv1 (`5.161.62.25`) fue ash-13/ash-16 antes de pasar a Coolify.
+- **Imagen**: **no hay registro**. Cada host clona GoClaw/openclaw y hace `docker build -t openclaw:latest` ahí
+  mismo (`scripts/provision-docker-host.sh` y `.github/workflows/provision-docker-host.yml` de mymolt).
+  Las actualizaciones de 2026 se hicieron construyendo `openclaw:sync-test` desde la rama sync y retagueándola a
+  `latest`, con `openclaw:rollback` como respaldo (`scripts/_fleet-prep.ts`, `_fleet-rollout.ts` y
+  `_upgrade-container.ts` de mymolt). La UI de un gateway en producción reporta `2026.9.1`. Fecha exacta del
+  build y commit de la imagen: **por confirmar** (la granja no tiene llave SSH para ash-21).
+- **Dashboard (mymolt)**: app de Coolify `goclaw` (uuid `6ltvp3pcnwkuc8egsgyk1pqe`) en **srv1**, servida en
+  `www.goclaw.app` y `goclaw.apps.apphive.dev`. Se despliega con un push a `main` de mymolt → workflow
+  `srv1.yml` (runner `[self-hosted, mymolt]` de la granja) → `srv1-construir`. La imagen en curso es la del
+  commit `7c8639c0a8`, desplegada el 2026-10-13.
+- **CI de este repo (no despliega nada)**:
+  - `ci.yml` usa runners **Blacksmith** (`blacksmith-4vcpu-*`) que la org GoClaw no tiene. Los jobs se quedan
+    en cola unas 24 h y GitHub los cancela.
+  - `docker-release.yml` falla con `repository name (GoClaw/openclaw-cache) must be lowercase`. Sólo hubo un
+    build OK (2026-02-19). Producción no usa ghcr, así que no bloquea nada.
 - Upstream publica a npm (`openclaw`) y apps macOS; **eso no aplica a GoClaw**: no publiques nada a npm.
 
 ## 5. Dependencias
@@ -89,20 +104,23 @@
   `OPENCLAW_CONFIG_PATH`, `OPENCLAW_CONFIG_DIR`, `OPENCLAW_WORKSPACE_DIR`, `OPENCLAW_GATEWAY_PORT`,
   `OPENCLAW_GATEWAY_BIND`, `OPENCLAW_BRIDGE_PORT`, `OPENCLAW_IMAGE`, `OPENCLAW_LOAD_SHELL_ENV`,
   `OPENCLAW_SHELL_ENV_TIMEOUT_MS`, `OPENCLAW_PREFER_PNPM`, `SETUP_PASSWORD`, `PORT`, `DISPLAY`;
-  claves: `ANTHROPIC_API_KEY(S|_1)`, `OPENAI_API_KEY(S|_1)`, `GEMINI_API_KEY(S|_1)`, `GOOGLE_API_KEY`,
-  `OPENROUTER_API_KEY`, `AI_GATEWAY_API_KEY`, `MINIMAX_API_KEY`, `ZAI_API_KEY`, `SYNTHETIC_API_KEY`,
-  `BRAVE_API_KEY`, `PERPLEXITY_API_KEY`, `FIRECRAWL_API_KEY`, `ELEVENLABS_API_KEY`, `XI_API_KEY`,
-  `DEEPGRAM_API_KEY`, `TELEGRAM_BOT_TOKEN`, `DISCORD_BOT_TOKEN`, `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`,
-  `MATTERMOST_BOT_TOKEN`, `MATTERMOST_URL`, `ZALO_BOT_TOKEN`, `OPENCLAW_TWITCH_ACCESS_TOKEN`,
-  `CLAUDE_AI_SESSION_KEY`, `CLAUDE_WEB_SESSION_KEY`, `CLAUDE_WEB_COOKIE`; tests live: `OPENCLAW_LIVE_*_KEY`.
-  Qué variables usa el despliegue real de GoClaw: **por confirmar**.
+  claves de proveedores y canales (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`,
+  `TELEGRAM_BOT_TOKEN`, `DISCORD_BOT_TOKEN`, `SLACK_*`…; lista completa en `.env.example`); tests live: `OPENCLAW_LIVE_*_KEY`.
+  Los contenedores reciben su config (`openclaw.json`) de mymolt; los modelos van vía LiteLLM
+  (`LITELLM_API_URL` en mymolt).
 
 ## 6. Reglas y trampas
 
-- **Es un fork**: cada cambio propio debe poder sobrevivir a un merge de upstream. Mantén los cambios pequeños
-  y aislados (archivos nuevos en `server-methods/` mejor que editar los de upstream). Sincronizar con upstream
-  (~8 meses de atraso) es un trabajo grande: no lo hagas sin que lo pida Jonatan. Al sincronizar, `AGENTS.md`
-  y `CLAUDE.md` chocarán con los de upstream: conserva estos y actualiza `.agents/UPSTREAM_GUIDELINES.md`.
+- **Es un fork que se re-sincroniza por ramas**: un cambio para producción va sobre la rama sync vigente
+  (`goclaw-sync-2026-09-04`), no sobre `main`. En la próxima sincronización hay que volver a portarlo, así
+  que mantenlo pequeño y aislado: mejor archivos nuevos en `server-methods/` que editar los de upstream.
+  Sincronizar es un trabajo grande y no se hace sin que lo pida Jonatan. Esa rama trae el `AGENTS.md` de
+  upstream: al sincronizar, conserva este y actualiza `.agents/UPSTREAM_GUIDELINES.md`.
+- 🚨 **Trampa de aprovisionamiento**: un host nuevo creado con los scripts de mymolt clona la rama por defecto
+  (`main`, 2026.2.18) y construiría la versión vieja. Lo mismo pasa con el `/update` de los VPS legacy
+  (`git pull` de `main`). Mientras `main` no se ponga al día, hay que construir desde la rama sync.
+- Probar algo en producción = un contenedor real de un cliente. Usa el flujo canario de mymolt
+  (`_canary-*.ts`) y no toques ash-21 sin permiso de Jonatan.
 - **Nuevo método RPC** = handler en `server-methods/`, registrarlo en `server-methods-list.ts`, decidir su scope
   (lectura vs `WRITE_METHODS` en `server-methods.ts`), esquema en `protocol/schema/` + `protocol-schemas.ts`,
   y `pnpm protocol:check`.
@@ -128,7 +146,9 @@
 - **Jonatan Vazquez** (autor de todos los commits del fork): producto, dónde corre y qué consume estas RPC.
   Sin grupo de WhatsApp: se le avisa por el panel (ver `~/CLAUDE.md`).
 - **GoClaw** (esta terminal, `~/goclaw`): dueña del repo en la granja.
-- Ninguna otra terminal de la granja tiene relación conocida con GoClaw (no hay referencias en los demás
-  repos); el dashboard/backend de GoClaw no está en este servidor (**por confirmar** dónde vive).
+- **Dashboard mymolt**: no tiene terminal propia en la granja; su repo es `jonatanvazquez/mymolt`. Sólo su
+  runner de CI (`mymolt`) corre aquí. Las preguntas sobre aprovisionamiento, hosts o la BD van a Jonatan.
+- **srv1 / Coolify**: lo comparten CabGo y otros proyectos. Antes de tocar algo ahí, lee `~/CLAUDE.md`.
+- `jonatanvazquez/openclaw` es otro fork (último push 2026-03-01) que mymolt no usa: es legacy.
 - No confundir con el **puente de WhatsApp de la granja** (`~/bridge`, también Baileys): es otro sistema;
   lo que sabe es útil para problemas de Baileys, pero no comparte código con este repo.
