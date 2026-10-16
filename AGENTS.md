@@ -78,7 +78,13 @@
   Las actualizaciones de 2026 se hicieron construyendo `openclaw:sync-test` desde la rama sync y retagueándola a
   `latest`, con `openclaw:rollback` como respaldo (`scripts/_fleet-prep.ts`, `_fleet-rollout.ts` y
   `_upgrade-container.ts` de mymolt). La UI de un gateway en producción reporta `2026.9.1`. Fecha exacta del
-  build y commit de la imagen: **por confirmar** (la granja no tiene llave SSH para ash-21; pedido a Infra).
+  build y commit de la imagen: **por confirmar**. Ni la granja ni Infra tienen acceso a ash-21: hace falta el sí
+  de Jonatan. La documentación de Infra lo marca como «servidor de un cliente, no se toca»; está anotado en
+  `infra/pendientes.md` para que él lo aclare.
+- **BD y respaldos** (según Infra): la BD de mymolt es la base `goclaw` del PostgreSQL 17 nativo de srv1, con
+  pgBackRest a R2 (PITR) y un pg_dump diario a S3; `litellm` tiene lo mismo. Los volúmenes de los bots en ash-21
+  (`/opt/openclaw/containers/*`) **no tienen respaldo conocido**. En srv1 queda `hatchery.service` inactivo, de
+  cuando srv1 era host.
 - **Dashboard (mymolt)**: app de Coolify `goclaw` (uuid `6ltvp3pcnwkuc8egsgyk1pqe`) en **srv1**, servida en
   `www.goclaw.app` y `goclaw.apps.apphive.dev`. Se despliega con un push a `main` de mymolt → workflow
   `srv1.yml` (runner `[self-hosted, mymolt]` de la granja) → `srv1-construir`. La imagen en curso es la del
@@ -116,8 +122,11 @@
   que mantenlo pequeño y aislado: mejor archivos nuevos en `server-methods/` que editar los de upstream.
   Sincronizar es un trabajo grande y no se hace sin que lo pida Jonatan. Esa rama trae el `AGENTS.md` de
   upstream: al sincronizar, conserva este y actualiza `.agents/UPSTREAM_GUIDELINES.md`.
-- 🚨 **Trampa de aprovisionamiento**: un host nuevo creado con los scripts de mymolt clona la rama por defecto
-  (`main`, 2026.2.18) y construiría la versión vieja. Lo mismo pasa con el `/update` de los VPS legacy
+- 🚨 **Trampa de aprovisionamiento**: un host nuevo clona la rama por defecto (`main`, 2026.2.18) y construye la
+  versión vieja. Puede pasar **sin que nadie lo pida**: el cron `check-capacity` de mymolt (cada hora,
+  `/etc/cron.d/goclaw` en srv1) lanza `provision-docker-host.yml` cuando quedan ≤ 5 plazas libres. ash-21 está
+  lleno, pero el cron no deja salida en `/var/log/goclaw-cron.log` (usa `curl -sf`) y no hay ejecuciones desde el
+  2026-05-23: ¿falla en silencio? **Por confirmar**. Lo mismo pasa con el `/update` de los VPS legacy
   (`git pull` de `main`). Mientras `main` no se ponga al día, hay que construir desde la rama sync.
 - Probar algo en producción = un contenedor real de un cliente. Usa el flujo canario de mymolt
   (`_canary-*.ts`) y no toques ash-21 sin permiso de Jonatan (y avisa a Infra).
