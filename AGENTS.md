@@ -46,7 +46,6 @@
 | `skills/` | Skills del agente · `.agents/skills/` skills de mantenimiento (review/prepare/merge PR, mintlify) |
 | `docs/` | Docs Mintlify (docs.openclaw.ai); `docs/zh-CN/**` es generado |
 | `Dockerfile`, `docker-compose.yml`, `scripts/container-entrypoint.sh` | Imagen y arranque en contenedor |
-| `fly.toml`, `render.yaml` | Plantillas de despliegue de upstream (no hay evidencia de que GoClaw las use) |
 | `.github/workflows/` | `ci.yml`, `docker-release.yml`, `install-smoke.yml`, `labeler.yml`, `stale.yml`… |
 
 ## 3. Cómo correrlo y probarlo
@@ -93,27 +92,23 @@
   - `ci.yml` usa runners **Blacksmith** (`blacksmith-4vcpu-*`) que la org GoClaw no tiene. Los jobs se quedan
     en cola unas 24 h y GitHub los cancela.
   - `docker-release.yml` falla con `repository name (GoClaw/openclaw-cache) must be lowercase`. Sólo hubo un
-    build OK (2026-02-19). Producción no usa ghcr, así que no bloquea nada.
+    build OK (2026-02-19). Producción no usa ghcr (ni `fly.toml`/`render.yaml`, plantillas de upstream).
 - Upstream publica a npm (`openclaw`) y apps macOS; **eso no aplica a GoClaw**: no publiques nada a npm.
 
 ## 5. Dependencias
 
-- **Modelos IA**: Anthropic (recomendado), OpenAI, Gemini, OpenRouter, MiniMax, Z.AI… según config.
-- **Canales**: WhatsApp (Baileys, no oficial), Telegram, Slack, Discord, Mattermost, Zalo, Twitch, etc.
-- **Otros servicios**: Brave/Perplexity/Firecrawl (búsqueda web), ElevenLabs y Deepgram (voz), Chromium/CDP.
-- **Base de datos**: no hay servidor de BD; el estado vive en disco: `~/.openclaw/openclaw.json`,
-  `~/.openclaw/workspace`, `~/.openclaw/credentials/`, `~/.openclaw/agents/<id>/sessions/*.jsonl`
-  (`OPENCLAW_STATE_DIR` lo mueve; en contenedor suele ir a un volumen `/data`). Memoria: `extensions/memory-core`
-  y `extensions/memory-lancedb` (local).
-- **Variables de entorno** (nombres, ver `.env.example`, `docker-compose.yml`, `render.yaml`):
-  `OPENCLAW_GATEWAY_TOKEN`, `OPENCLAW_GATEWAY_PASSWORD`, `OPENCLAW_STATE_DIR`, `OPENCLAW_HOME`,
-  `OPENCLAW_CONFIG_PATH`, `OPENCLAW_CONFIG_DIR`, `OPENCLAW_WORKSPACE_DIR`, `OPENCLAW_GATEWAY_PORT`,
-  `OPENCLAW_GATEWAY_BIND`, `OPENCLAW_BRIDGE_PORT`, `OPENCLAW_IMAGE`, `OPENCLAW_LOAD_SHELL_ENV`,
-  `OPENCLAW_SHELL_ENV_TIMEOUT_MS`, `OPENCLAW_PREFER_PNPM`, `SETUP_PASSWORD`, `PORT`, `DISPLAY`;
-  claves de proveedores y canales (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`,
-  `TELEGRAM_BOT_TOKEN`, `DISCORD_BOT_TOKEN`, `SLACK_*`…; lista completa en `.env.example`); tests live: `OPENCLAW_LIVE_*_KEY`.
-  Los contenedores reciben su config (`openclaw.json`) de mymolt; los modelos van vía LiteLLM
-  (`LITELLM_API_URL` en mymolt).
+- **Servicios**: modelos IA (Anthropic, OpenAI, Gemini, OpenRouter… en GoClaw, vía LiteLLM); canales (WhatsApp
+  con Baileys, no oficial, Telegram, Slack, Discord…); búsqueda web (Brave/Perplexity/Firecrawl); voz
+  (ElevenLabs/Deepgram); Chromium por CDP.
+- **Estado del gateway**: no hay BD, todo vive en disco: `~/.openclaw/{openclaw.json,workspace,credentials}` y
+  `~/.openclaw/agents/<id>/sessions/*.jsonl`. `OPENCLAW_STATE_DIR` lo mueve. La memoria es local
+  (`extensions/memory-core`, `memory-lancedb`). En GoClaw, mymolt escribe el `openclaw.json` de cada contenedor.
+- **Variables de entorno** (sólo nombres; lista completa en `.env.example`, `docker-compose.yml` y `render.yaml`):
+  `OPENCLAW_GATEWAY_TOKEN`, `OPENCLAW_GATEWAY_PASSWORD`, `OPENCLAW_STATE_DIR`, `OPENCLAW_HOME`, `OPENCLAW_CONFIG_PATH`,
+  `OPENCLAW_CONFIG_DIR`, `OPENCLAW_WORKSPACE_DIR`, `OPENCLAW_GATEWAY_PORT`, `OPENCLAW_GATEWAY_BIND`, `OPENCLAW_IMAGE`,
+  `SETUP_PASSWORD`, `PORT`, `DISPLAY`; claves de proveedores y canales (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`,
+  `GEMINI_API_KEY`, `OPENROUTER_API_KEY`, `TELEGRAM_BOT_TOKEN`, `DISCORD_BOT_TOKEN`, `SLACK_*`…); tests live:
+  `OPENCLAW_LIVE_*_KEY`.
 
 ## 6. Reglas y trampas
 
@@ -138,8 +133,6 @@
   (sólo `.md`, rechaza rutas fuera del workspace) y `skills.create` escriben en disco: no relajes esas guardas.
 - **WhatsApp/Baileys** es no oficial: reconexiones o logins repetidos pueden desvincular la cuenta. No pruebes
   contra números reales; nunca subas números, sesiones ni config real (usa datos falsos obvios).
-- **Docker Release roto** por mayúsculas en el nombre del registro: si lo arreglas, usa el nombre en minúsculas
-  (p. ej. `${{ github.repository }}` → minúsculas) también para la caché.
 - Del upstream (detalle en `.agents/UPSTREAM_GUIDELINES.md`): TypeScript ESM estricto, sin `any`, sin
   `@ts-nocheck`, sin mixins por prototipo; archivos < ~500–700 líneas; tests `*.test.ts` junto al código;
   deps de plugins en su `package.json` (no `workspace:*` en `dependencies`); no editar `node_modules`;
