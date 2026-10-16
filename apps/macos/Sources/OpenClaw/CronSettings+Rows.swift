@@ -18,7 +18,7 @@ extension CronSettings {
                 }
             }
             HStack(spacing: 6) {
-                StatusPill(text: job.sessionTarget.rawValue, tint: .secondary)
+                StatusPill(text: job.sessionTargetDisplayValue, tint: .secondary)
                 StatusPill(text: job.wakeMode.rawValue, tint: .secondary)
                 if let agentId = job.agentId, !agentId.isEmpty {
                     StatusPill(text: "agent \(agentId)", tint: .secondary)
@@ -34,9 +34,9 @@ extension CronSettings {
     @ViewBuilder
     func jobContextMenu(_ job: CronJob) -> some View {
         Button("Run now") { Task { await self.store.runJob(id: job.id, force: true) } }
-        if job.sessionTarget == .isolated {
+        if let transcriptSessionKey = job.transcriptSessionKey {
             Button("Open transcript") {
-                WebChatManager.shared.show(sessionKey: "cron:\(job.id)")
+                WebChatManager.shared.show(sessionKey: transcriptSessionKey)
             }
         }
         Divider()
@@ -48,6 +48,7 @@ extension CronSettings {
             self.editorError = nil
             self.showEditor = true
         }
+        .disabled(!job.payload.isEditableInMacApp)
         Divider()
         Button("Delete…", role: .destructive) {
             self.confirmDelete = job
@@ -75,9 +76,9 @@ extension CronSettings {
                     .labelsHidden()
                 Button("Run") { Task { await self.store.runJob(id: job.id, force: true) } }
                     .buttonStyle(.borderedProminent)
-                if job.sessionTarget == .isolated {
+                if let transcriptSessionKey = job.transcriptSessionKey {
                     Button("Transcript") {
-                        WebChatManager.shared.show(sessionKey: "cron:\(job.id)")
+                        WebChatManager.shared.show(sessionKey: transcriptSessionKey)
                     }
                     .buttonStyle(.bordered)
                 }
@@ -87,6 +88,11 @@ extension CronSettings {
                     self.showEditor = true
                 }
                 .buttonStyle(.bordered)
+                .disabled(!job.payload.isEditableInMacApp)
+                .help(
+                    job.payload.isEditableInMacApp
+                        ? "Edit automation"
+                        : "Command and script payloads are read-only in the macOS app")
             }
         }
     }
@@ -103,7 +109,7 @@ extension CronSettings {
             if let agentId = job.agentId, !agentId.isEmpty {
                 LabeledContent("Agent") { Text(agentId) }
             }
-            LabeledContent("Session") { Text(job.sessionTarget.rawValue) }
+            LabeledContent("Session") { Text(job.sessionTargetDisplayValue) }
             LabeledContent("Wake") { Text(job.wakeMode.rawValue) }
             LabeledContent("Next run") {
                 if let date = job.nextRunDate {
@@ -114,7 +120,8 @@ extension CronSettings {
             }
             LabeledContent("Last run") {
                 if let date = job.lastRunDate {
-                    Text("\(date.formatted(date: .abbreviated, time: .standard)) · \(relativeAge(from: date))")
+                    Text(
+                        verbatim: "\(date.formatted(date: .abbreviated, time: .standard)) · \(relativeAge(from: date))")
                 } else {
                     Text("—").foregroundStyle(.secondary)
                 }
@@ -143,7 +150,7 @@ extension CronSettings {
                     .font(.headline)
                 Spacer()
                 Button {
-                    Task { await self.store.refreshRuns(jobId: job.id) }
+                    self.store.refreshRuns(jobId: job.id)
                 } label: {
                     Label("Refresh", systemImage: "arrow.clockwise")
                 }
@@ -182,7 +189,7 @@ extension CronSettings {
                     .foregroundStyle(.secondary)
                 Spacer()
                 if let ms = entry.durationMs {
-                    Text("\(ms)ms")
+                    Text(String(format: String(localized: "%lldms"), ms))
                         .font(.caption2.monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
@@ -224,9 +231,9 @@ extension CronSettings {
                     HStack(spacing: 8) {
                         if let thinking, !thinking.isEmpty { StatusPill(text: "think \(thinking)", tint: .secondary) }
                         if let timeoutSeconds { StatusPill(text: "\(timeoutSeconds)s", tint: .secondary) }
-                        if job.sessionTarget == .isolated {
-                            let delivery = job.delivery
-                            if let delivery {
+                        if job.supportsAnnounceDelivery {
+                            if let delivery = job.delivery {
+                                self.advancedDeliveryPills(delivery)
                                 if delivery.mode == .announce {
                                     StatusPill(text: "announce", tint: .secondary)
                                     if let channel = delivery.channel, !channel.isEmpty {
@@ -240,7 +247,48 @@ extension CronSettings {
                         }
                     }
                 }
+            case let .command(argv, cwd, _, _, timeoutSeconds, _, _, _, _):
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(argv.joined(separator: " "))
+                        .font(.callout.monospaced())
+                        .textSelection(.enabled)
+                    HStack(spacing: 8) {
+                        StatusPill(text: "command · read-only", tint: .secondary)
+                        if let cwd, !cwd.isEmpty { StatusPill(text: cwd, tint: .secondary) }
+                        if let timeoutSeconds { StatusPill(text: "\(timeoutSeconds)s", tint: .secondary) }
+                    }
+                }
+            case let .script(script, timeoutSeconds, toolBudget, _, _):
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(script)
+                        .font(.callout.monospaced())
+                        .textSelection(.enabled)
+                    HStack(spacing: 8) {
+                        StatusPill(text: "script · read-only", tint: .secondary)
+                        if let timeoutSeconds { StatusPill(text: "\(timeoutSeconds)s", tint: .secondary) }
+                        if let toolBudget { StatusPill(text: "\(toolBudget) tools", tint: .secondary) }
+                    }
+                }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func advancedDeliveryPills(_ delivery: CronDelivery) -> some View {
+        if let threadId = delivery.threadId?.value {
+            StatusPill.verbatim(
+                "threadId \(String(describing: threadId))",
+                tint: .secondary)
+        }
+        if let to = delivery.completionDestination?["to"]?.value as? String {
+            StatusPill.verbatim("completionDestination \(to)", tint: .secondary)
+        }
+        if let failure = delivery.failureDestination {
+            let target = failure["to"]?.value as? String
+                ?? failure["channel"]?.value as? String
+                ?? failure["accountId"]?.value as? String
+            let suffix = target.map { " \($0)" } ?? ""
+            StatusPill.verbatim("failureDestination" + suffix, tint: .secondary)
         }
     }
 }
