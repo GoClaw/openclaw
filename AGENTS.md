@@ -78,7 +78,7 @@
   Las actualizaciones de 2026 se hicieron construyendo `openclaw:sync-test` desde la rama sync y retagueándola a
   `latest`, con `openclaw:rollback` como respaldo (`scripts/_fleet-prep.ts`, `_fleet-rollout.ts` y
   `_upgrade-container.ts` de mymolt). La UI de un gateway en producción reporta `2026.9.1`. Fecha exacta del
-  build y commit de la imagen: **por confirmar** (la granja no tiene llave SSH para ash-21).
+  build y commit de la imagen: **por confirmar** (la granja no tiene llave SSH para ash-21; pedido a Infra).
 - **Dashboard (mymolt)**: app de Coolify `goclaw` (uuid `6ltvp3pcnwkuc8egsgyk1pqe`) en **srv1**, servida en
   `www.goclaw.app` y `goclaw.apps.apphive.dev`. Se despliega con un push a `main` de mymolt → workflow
   `srv1.yml` (runner `[self-hosted, mymolt]` de la granja) → `srv1-construir`. La imagen en curso es la del
@@ -120,7 +120,7 @@
   (`main`, 2026.2.18) y construiría la versión vieja. Lo mismo pasa con el `/update` de los VPS legacy
   (`git pull` de `main`). Mientras `main` no se ponga al día, hay que construir desde la rama sync.
 - Probar algo en producción = un contenedor real de un cliente. Usa el flujo canario de mymolt
-  (`_canary-*.ts`) y no toques ash-21 sin permiso de Jonatan.
+  (`_canary-*.ts`) y no toques ash-21 sin permiso de Jonatan (y avisa a Infra).
 - **Nuevo método RPC** = handler en `server-methods/`, registrarlo en `server-methods-list.ts`, decidir su scope
   (lectura vs `WRITE_METHODS` en `server-methods.ts`), esquema en `protocol/schema/` + `protocol-schemas.ts`,
   y `pnpm protocol:check`.
@@ -146,9 +146,14 @@
 - **Jonatan Vazquez** (autor de todos los commits del fork): producto, dónde corre y qué consume estas RPC.
   Sin grupo de WhatsApp: se le avisa por el panel (ver `~/CLAUDE.md`).
 - **GoClaw** (esta terminal, `~/goclaw`): dueña del repo en la granja.
+- **Infra** (`~/infra`, sesión «Infra», repo `jonatanvazquez/infra`): servidores, Coolify, despliegues y
+  respaldos. A ella van las dudas sobre srv1, los hosts Docker de Hetzner (ash-21: acceso, imagen, rama del
+  checkout `/opt/openclaw/repo`), la app de Coolify `goclaw` y los respaldos. Usa `SendMessage` a la fila
+  cuyo tmux es `claude-infra`.
 - **Dashboard mymolt**: no tiene terminal propia en la granja; su repo es `jonatanvazquez/mymolt`. Sólo su
-  runner de CI (`mymolt`) corre aquí. Las preguntas sobre aprovisionamiento, hosts o la BD van a Jonatan.
-- **srv1 / Coolify**: lo comparten CabGo y otros proyectos. Antes de tocar algo ahí, lee `~/CLAUDE.md`.
+  runner de CI (`mymolt`) corre aquí. Infraestructura → Infra; decisiones de producto o de la flota → Jonatan.
+- **srv1 / Coolify**: lo comparten CabGo y otros proyectos. Antes de tocar algo ahí, lee `~/CLAUDE.md` y
+  pregúntale a Infra.
 - `jonatanvazquez/openclaw` es otro fork (último push 2026-03-01) que mymolt no usa: es legacy.
 - No confundir con el **puente de WhatsApp de la granja** (`~/bridge`, también Baileys): es otro sistema;
   lo que sabe es útil para problemas de Baileys, pero no comparte código con este repo.
