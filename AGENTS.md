@@ -87,14 +87,11 @@
 - **BD y respaldos** (según Infra): la BD de mymolt es la base `goclaw` del PostgreSQL de srv1, con pgBackRest a
   R2 y un pg_dump diario a S3. Los volúmenes de los bots (`/opt/openclaw/containers/*` en el host) **no tienen
   respaldo conocido**.
-- **CI de este repo** (no despliega nada en GoClaw):
-  - Desde 2026.9.1 trae unos 100 workflows de upstream.
-  - Fuera de `openclaw/openclaw`, la mayoría corre en runners de GitHub (`ubuntu-24.04`) y no en Blacksmith.
-  - Algunos se disparan con un push a `main` y están pensados para publicar (`Plugin NPM Release`,
-    `Docs Sync Publish Repo`, `Live Media Runner Image`, `OpenClaw Stable Main Closeout`…). Qué hacen en el fork
-    sin los secretos de upstream: **por confirmar**.
-  - `docker-release.yml` ya sólo se dispara desde otros workflows (`workflow_call`).
-  - Producción no usa ghcr, ni `fly.toml`/`render.yaml`, que son plantillas de upstream.
+- **CI de este repo: desactivado.** Desde 2026.9.1 el repo trae unos 100 workflows de upstream que fallan en el
+  fork: exigen `openclaw/openclaw`, secretos y runners de upstream, y mandaban un correo por fallo. El 2026-10-18,
+  por decisión de Jonatan, se desactivaron los 97 en GitHub (`disabled_manually`). No despliegan nada en GoClaw y
+  las pruebas se corren en la granja (§3). Producción tampoco usa ghcr, `fly.toml` ni `render.yaml` (plantillas de
+  upstream).
 - No publiques nada a npm, ni apps, ni avisos GHSA: eso es de upstream.
 
 ## 5. Dependencias
@@ -122,6 +119,9 @@
   «GoClaw port» en el commit. Sincronizar es un trabajo grande y no se hace sin que lo pida Jonatan.
   - La rama sync trae el `AGENTS.md` y el `CLAUDE.md` de upstream. Al llevarla a `main`, conserva estos: copia el
     `AGENTS.md` nuevo de upstream a `.agents/UPSTREAM_GUIDELINES.md` y deja `CLAUDE.md` con sólo `@AGENTS.md`.
+  - Después del merge, desactiva los workflows nuevos que traiga upstream: los que queden activos se listan con
+    `gh api repos/GoClaw/openclaw/actions/workflows --paginate -q '.workflows[]|select(.state=="active")|.id'`
+    y se desactivan con `gh api -X PUT repos/GoClaw/openclaw/actions/workflows/<id>/disable`.
 - 🚨 **`main` es lo que se despliega**: un host nuevo construye `main`. Puede pasar **sin que nadie lo pida**: el
   cron `check-capacity` de mymolt (cada hora, en srv1) lanza `provision-docker-host.yml` cuando quedan ≤ 5 plazas
   libres. Ese cron no deja salida en su log y el auto-escalado no corre desde el 2026-05-23: ¿falla en silencio?
