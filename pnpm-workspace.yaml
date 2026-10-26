@@ -42,6 +42,20 @@ overrides:
   # Security 2026-10-26 (GHSA-xjj6-f33q-929c, GHSA-rfgv-xxqx-mfg5, GHSA-w293-vg96-wgc3): transitive undici (jsdom, mailauth).
   "undici@>=7.0.0 <8.0.0": 7.30.1
   "undici@>=8.0.0 <8.12.2": 8.12.2
+  # Security 2026-10-26, Seguridad dependency sweep (critical/high; transitive).
+  "dompurify@<3.4.17": 3.4.17
+  proxy-addr: 2.0.8
+  tinypool: 2.1.2
+  "@grpc/grpc-js@>=1.14.0 <1.14.5": 1.14.5
+  "@modelcontextprotocol/sdk@<1.32.0": 1.32.0
+  "joi@>=18.0.0 <18.2.6": 18.2.6
+  "js-yaml@>=4.0.0 <4.3.2": 4.3.2
+  "markdown-it@>=15.0.0 <15.0.3": 15.0.3
+  source-map-js: 1.2.2
+  "vite@>=8.2.0 <8.2.4": 8.2.4
+  "zod@>=4.0.0 <4.6.6": 4.6.6
+  # Major bumps (no patched release on the old line): Teams auth and IMAP mail parsing.
+  "@azure/msal-node": 7.1.0
   # Memory LanceDB supplies vectors; WhatsApp prepares thumbnails with Rastermill.
   "@lancedb/lancedb>@huggingface/transformers": "-"
   "baileys>sharp": "-"
@@ -54,23 +68,23 @@ overrides:
   "@aws-sdk/credential-provider-node": 3.972.81
   "@aws-sdk/xml-builder": 3.972.40
   "@hono/node-server": 2.1.1
-  axios: 1.19.0
+  axios: 1.20.0
   fast-uri: 4.1.4
-  follow-redirects: 1.16.0
+  follow-redirects: 1.16.1
   defu: 6.1.7
   fast-xml-parser: 5.11.0
   request: "npm:@cypress/request@4.0.1"
   request-promise: "npm:@cypress/request-promise@5.0.0"
   basic-ftp: 6.2.0
-  brace-expansion: 5.0.9
+  brace-expansion: 5.0.11
   file-type: 22.0.2
   form-data: 4.0.6
   "werift-ice@0.2.2>ip": "npm:neoip@3.1.0"
   ip-address: 10.5.0
   # Keep the cooled HTML converter security fix while Mailparser is rolled back.
   "mailparser@3.9.15>html-to-text": 10.0.1
-  "mailauth@5.0.2>nodemailer": 9.1.1
-  "mailparser@3.9.15>nodemailer": 9.1.1
+  "mailauth@5.0.2>nodemailer": 10.0.6
+  "mailparser@3.9.15>nodemailer": 10.0.6
   minimatch: 10.2.6
   path-to-regexp: 8.4.2
   qs: 6.15.3
