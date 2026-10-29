@@ -54,6 +54,8 @@ overrides:
   source-map-js: 1.2.2
   "vite@>=8.2.0 <8.2.4": 8.2.4
   "zod@>=4.0.0 <4.6.6": 4.6.6
+  # Security 2026-10-29 (GHSA-gg6h-894w-4m9c): re2js via @openclaw/crabline (qa-lab only).
+  "re2js@<2.8.7": 2.8.8
   # Major bumps (no patched release on the old line): Teams auth and IMAP mail parsing.
   "@azure/msal-node": 7.1.0
   # Memory LanceDB supplies vectors; WhatsApp prepares thumbnails with Rastermill.

@@ -119,6 +119,7 @@ overrides:
   source-map-js: 1.2.2
   vite@>=8.2.0 <8.2.4: 8.2.4
   zod@>=4.0.0 <4.6.6: 4.6.6
+  re2js@<2.8.7: 2.8.8
   '@azure/msal-node': 7.1.0
   '@lancedb/lancedb>@huggingface/transformers': '-'
   baileys>sharp: '-'
@@ -8625,9 +8626,9 @@ packages:
     resolution: {integrity: sha512-K5zQjDllxWkf7Z5xJdV0/B0WTNqx6vxG70zJE4N0kBs4LovmEYWJzQGxC9bS9RAKu3bgM40lrd5zoLJ12MQ5BA==}
     engines: {node: '>= 0.10'}
 
-  re2js@2.8.6:
-    resolution: {integrity: sha512-xLgQil4kIUCrAzVk9fRSkxkFNwmygLFjVxXrLc65aE1F0+Zsb8rxumFBy4XKyvgMCTL6kilDq3EZ0piE2dP/Dg==}
-    engines: {node: '>=18.0.0'}
+  re2js@2.8.8:
+    resolution: {integrity: sha512-E2FVgqD2mzJ+ZmMSHLnkOvZ7PiZ4FgMdfVCA3YsJWs9gtyoaKmUMxyVPCXS1yK209/mz3XkdT7kr3OlMWW2Fww==}
+    engines: {node: '>=20.0.0'}
 
   react-dom@19.2.8:
     resolution: {integrity: sha512-rVprimfGBG3DR+Tq0IQG2DT5PxKth1WIGDmj5yPmlzr4YBe7uyE+Du4oVqTDXZSHGGGXRtTJEGSSePyQCMBglQ==}
@@ -11504,7 +11505,7 @@ snapshots:
       libsignal: 6.0.0
       picocolors: 1.1.1
       proper-lockfile: 4.1.2
-      re2js: 2.8.6
+      re2js: 2.8.8
       ws: 8.21.3
       yaml: 2.9.0
       zod: 4.6.6
@@ -16197,7 +16198,7 @@ snapshots:
       iconv-lite: 0.7.3
       unpipe: 1.0.0
 
-  re2js@2.8.6: {}
+  re2js@2.8.8: {}
 
   react-dom@19.2.8(react@19.2.8):
     dependencies:
